@@ -1,0 +1,55 @@
+role_mapping:
+  "21211": # Data scientists (Includes AI, ML, and Data Engineering anchors)
+    - '"Data Scientist"'
+    - '"Machine Learning Engineer"'
+    - '"ML Developer"'
+    - '"ML Engineer"'
+    - '"MLOps Engineer"'
+    - '"AI Developer"'
+    - '"GenAI Developer"'
+    - '"Data Engineer"'          # Officially mapped here in NOC 2021
+    - '"Big Data Engineer"'
+    - '"ML Researcher"'
+    - '"AI Researcher"'
+    - '"Quantitative Analyst"'
+
+  "21221": # Business systems specialists
+    - '"Data Analyst"'           # Often categorized here for business-focus
+    - '"Business Intelligence Developer"'
+    - '"BI Developer"'
+    - '"Data Analytics Specialist"'
+
+  "21223": # Database analysts and data administrators
+    - '"Database Architect"'
+    - '"Database Administrator"'
+    - '"DBA"'
+    - '"Data Architect"'         # High overlap with Data Engineering
+    - '"ETL Developer"'
+    - '"Data Warehouse Analyst"'
+
+  "21231": # Software engineers and designers
+    - '"Software Engineer"'
+    - '"DevOps Engineer"'        # Essential infrastructure role
+    - '"Cloud Engineer"'
+    - '"Site Reliability Engineer"'
+
+  "21232": # Software developers and programmers
+    - '"Software Developer"'
+    - '"Full Stack Developer"'
+    - '"Backend Developer"'
+    - '"Python Developer"'
+    - '"Java Developer"'
+    - '"C# Developer"'
+
+  "21220": # Cybersecurity specialists
+    - '"Cybersecurity Specialist"'
+    - '"Security Engineer"'
+    - '"Information Security Analyst"'
+    - '"Penetration Tester"'
+    - '"SOC Analyst"'
+
+  "21234": # Web developers
+    - '"Web Developer"'
+    - '"Frontend Developer"'
+    - '"React Developer"'
+    - '"JavaScript Developer"'

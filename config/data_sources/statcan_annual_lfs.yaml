@@ -1,0 +1,12 @@
+# Labour force characteristics by occupation, annual
+pid: "14100416"
+query:
+    - Geography: 
+        - "Canada"
+    - "National Occupational Classification (NOC)":
+        - "Professional occupations in applied sciences (except engineering)"
+    - "Labour force characteristics":
+        - "Labour force"
+        - "Unemployment rate"
+        - "Proportion of employment"
+ref_start: "2021-01-01"

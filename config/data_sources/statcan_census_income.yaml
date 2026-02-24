@@ -1,0 +1,25 @@
+pid: "98100412"
+query:
+    - Geography: 
+        - "Canada"
+    - "Highest certificate, diploma or degree (16)":
+        - "College, CEGEP or other non-university certificate or diploma"
+        - "Bachelor's degree"
+        - "Master's degree"
+        - "Earned doctorate"
+    - "Major field of study - Classification of Instructional Programs (CIP) 2021 (63)":
+        - "Mathematics, computer and information sciences"
+    - "Occupation - Unit group - National Occupational Classification (NOC) 2021 (821A)":
+        - "212 Professional occupations in applied sciences (except engineering)"
+        - "21211 Data scientists"
+        - "21220 Cybersecurity specialists"
+        - "21221 Business systems specialists"
+        - "21222 Information systems specialists"
+        - "21223 Database analysts and data administrators"
+        - "21230 Computer systems developers and programmers"
+        - "21231 Software engineers and designers"
+        - "21232 Software developers and programmers"
+        - "21233 Web designers"
+        - "21234 Web developers and programmers"
+    - "Employment income statistics (7)":
+        - "Median employment income ($)"

@@ -1,0 +1,13 @@
+# Postsecondary graduates
+pid: "37100276"
+query:
+    - Geography: 
+        - "Canada"
+    - "International Standard Classification of Education (ISCED)":
+        - "Bachelor's or equivalent"
+        - "Master's or equivalent"
+        - "Doctoral or equivalent"
+    - "Field of study":
+        - "Computer and information sciences and support services"
+        - "Mathematics and statistics"
+ref_start: "2019-01-01"

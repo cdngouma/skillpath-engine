@@ -1,0 +1,10 @@
+# Employee wages by occupation, annual
+pid: "14100417"
+query:
+    - Geography: "Canada"
+    - Wages: "Median weekly wage rate"
+    - "Type of work": 
+        - "Full-time employees"
+    - "National Occupational Classification (NOC)":
+        - "Professional occupations in applied sciences (except engineering)"
+ref_start: "2021-01-01"
