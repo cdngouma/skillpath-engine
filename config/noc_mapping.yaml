@@ -1,0 +1,25 @@
+# noc_mapping.yaml
+noc_hierarchy:
+  "212":
+    title: "Professional occupations in applied sciences (except engineering)"
+    children:
+      "2121":
+        title: "Mathematicians, statisticians, actuaries and data scientists"
+        children:
+          "21210": "Mathematicians, statisticians and actuaries"
+          "21211": "Data scientists"
+      "2122":
+        title: "Computer and information systems professionals"
+        children:
+          "21220": "Cybersecurity specialists"
+          "21221": "Business systems specialists"
+          "21222": "Information systems specialists"
+          "21223": "Database analysts and data administrators"
+      "2123":
+        title: "Computer, software and Web designers and developers"
+        children:
+          "21230": "Computer systems developers and programmers"
+          "21231": "Software engineers and designers"
+          "21232": "Software developers and programmers"
+          "21233": "Web designers"
+          "21234": "Web developers and programmers"

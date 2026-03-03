@@ -13,8 +13,8 @@ CREATE TABLE IF NOT EXISTS bronze.job_postings_raw (
     category VARCHAR,
     location VARCHAR,
     description VARCHAR,
-    noc_code VARCHAR,
     search_term VARCHAR,
     ingested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    source VARCHAR
+    source VARCHAR,
+    redirect_url VARCHAR
 )
