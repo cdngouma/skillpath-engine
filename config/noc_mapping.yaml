@@ -23,3 +23,5 @@ noc_hierarchy:
           "21232": "Software developers and programmers"
           "21233": "Web designers"
           "21234": "Web developers and programmers"
+
+Consider the following table between triple quotes. I want you to write a function that takes as input a dataframe df and a noc_code then plot a barchart of the top ngrams in the descriptions of that noc.

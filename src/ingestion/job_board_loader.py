@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
+PAGES_PER_JOB = 5
+
 def load_config(cfg_path="config/role_mapping.yaml"):
     with open(cfg_path, "r") as f:
         return yaml.safe_load(f)
@@ -93,7 +95,7 @@ def ingest_jobs_to_bronze(mode="update"):
         for noc_code, search_terms in role_mapping.items():
             for term in search_terms:
                 logger.info(f"--- Processing {term} (NOC {noc_code}) ---")
-                jobs_raw = fetch_adzuna_jobs(what=term, pages=2)
+                jobs_raw = fetch_adzuna_jobs(what=term, pages=PAGES_PER_JOB)
                 new_jobs_list = []
                 
                 for job in jobs_raw:

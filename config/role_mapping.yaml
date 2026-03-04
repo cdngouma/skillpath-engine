@@ -1,118 +1,118 @@
 role_mapping:
   # 21211: Data Science (Advanced analytics, ML, and Data Engineering)
   "21211":
-    - '"Data Scientist"'
-    - '"Machine Learning Engineer"'
-    - '"ML Developer"'
-    - '"ML Engineer"'
-    - '"MLOps Engineer"'
-    - '"AI Developer"'
-    - '"GenAI Developer"'
-    - '"Data Engineer"'
-    - '"Big Data Engineer"'
-    - '"ML Researcher"'
-    - '"AI Researcher"'
-    - '"Quantitative Analyst"'
+    - "Data Scientist"
+    - "Machine Learning Engineer"
+    - "ML Developer"
+    - "ML Engineer"
+    - "MLOps Engineer"
+    - "AI Developer"
+    - "GenAI Developer"
+    - "Data Engineer"
+    - "Big Data Engineer"
+    - "ML Researcher"
+    - "AI Researcher"
+    - "Quantitative Analyst"
 
   # 21220: Cybersecurity (Security measures and network protection)
   "21220":
-    - '"Cybersecurity Specialist"'
-    - '"Security Engineer"'
-    - '"Security Architect"'
-    - '"Information Security Analyst"'
-    - '"Penetration Tester"'
-    - '"SOC Analyst"'
+    - "Cybersecurity Specialist"
+    - "Security Engineer"
+    - "Security Architect"
+    - "Information Security Analyst"
+    - "Penetration Tester"
+    - "SOC Analyst"
 
   # 21221: Business Systems (Strategy-to-IT translation and architecture)
   "21221":
-    - '"Business Systems Analyst"'
-    - '"IT Business Analyst"'
-    - '"ERP Consultant"'
-    - '"Systems Strategist"'
-    - '"Business Architect"'
-    - '"Business Intelligence Analyst"'
+    - "Business Systems Analyst"
+    - "IT Business Analyst"
+    - "ERP Consultant"
+    - "Systems Strategist"
+    - "Business Architect"
+    - "Business Intelligence Analyst"
 
   # 21222: Information Systems (Systems requirements and connectivity)
   "21222":
-    - '"Network Analyst"'
-    - '"Network Engineer"'
-    - '"Information Systems Specialist"'
-    - '"Systems Consultant"'
-    - '"Technical Architect"'
-    - '"Solutions Architect"'
-    - '"Enterprise Architect"'
-    - '"Software QA Analyst"'
-    - '"QA Engineer"'
-    - '"Software Tester"'
-    - '"Technical Project Manager"'
-    - '"IT Analyst"'
-    - '"Systems Consultant"'
+    - "Network Analyst"
+    - "Network Engineer"
+    - "Information Systems Specialist"
+    - "Systems Consultant"
+    - "Technical Architect"
+    - "Solutions Architect"
+    - "Enterprise Architect"
+    - "Software QA Analyst"
+    - "QA Engineer"
+    - "Software Tester"
+    - "Technical Project Manager"
+    - "IT Analyst"
+    - "Systems Consultant"
 
   # 21223: Database & Data Admin (Data management and solutions)
   "21223":
-    - '"Data Analyst"'
-    - '"Business Intelligence Developer"'
-    - '"BI Developer"'
-    - '"Data Analytics Specialist"'
-    - '"Database Architect"'
-    - '"Database Administrator"'
-    - '"Database Engineer"'
-    - '"DBA"'
-    - '"Data Architect"'
-    - '"ETL Developer"'
-    - '"Data Warehouse Analyst"'
+    - "Data Analyst"
+    - "Business Intelligence Developer"
+    - "BI Developer"
+    - "Data Analytics Specialist"
+    - "Database Architect"
+    - "Database Administrator"
+    - "Database Engineer"
+    - "DBA"
+    - "Data Architect"
+    - "ETL Developer"
+    - "Data Warehouse Analyst"
 
   # 21230: Systems Programming (Operating systems and communications code)
   "21230":
-    - '"Systems Programmer"'
-    - '"Embedded Software Engineer"'
-    - '"C++ Developer"'
-    - '"Kernel Developer"'
-    - '"Firmware Engineer"'
-    - '"Mainframe Developer"'
+    - "Systems Programmer"
+    - "Embedded Software Engineer"
+    - "C++ Developer"
+    - "Kernel Developer"
+    - "Firmware Engineer"
+    - "Mainframe Developer"
 
   # 21231: Software Engineering (Technical environments and infrastructure)
   "21231":
-    - '"Software Engineer"'
-    - '"DevOps Engineer"'
-    - '"Cloud Engineer"'
-    - '"Site Reliability Engineer"'
-    - '"Infrastructure Engineer"'
-    - '"Platform Engineer"'
+    - "Software Engineer"
+    - "DevOps Engineer"
+    - "Cloud Engineer"
+    - "Site Reliability Engineer"
+    - "Infrastructure Engineer"
+    - "Platform Engineer"
 
   # 21232: Software Development (Code efficiency and effectiveness)
   "21232":
-    - '"Software Developer"'
-    - '"Full Stack Developer"'
-    - '"Full Stack Engineer"'
-    - '"Backend Developer"'
-    - '"Python Developer"'
-    - '"Java Developer"'
-    - '"C# Developer"'
+    - "Software Developer"
+    - "Full Stack Developer"
+    - "Full Stack Engineer"
+    - "Backend Developer"
+    - "Python Developer"
+    - "Java Developer"
+    - "C# Developer"
 
   # 21233: Web Design (Visual presentation and layout)
   "21233":
-    - '"Web Designer"'
-    - '"UI Designer"'
-    - '"UX Designer"'
-    - '"User Experience Researcher"'
-    - '"UI/UX Specialist"'
+    - "Web Designer"
+    - "UI Designer"
+    - "UX Designer"
+    - "User Experience Researcher"
+    - "UI/UX Specialist"
 
   # 21234: Web Development (Functionality and website capacity)
   "21234":
-    - '"Web Developer"'
-    - '"Frontend Developer"'
-    - '"Frontend Engineer"'
-    - '"React Developer"'
-    - '"JavaScript Developer"'
-    - '"WordPress Developer"'
+    - "Web Developer"
+    - "Frontend Developer"
+    - "Frontend Engineer"
+    - "React Developer"
+    - "JavaScript Developer"
+    - "WordPress Developer"
   
   # 20012: Computer and information systems managers
   "20012":
-    - '"Engineering Manager"'
-    - '"IT Director"'
-    - '"Data Science Manager"'
-    - '"Software Development Manager"'
-    - '"CTO"'
-    - '"VP of Engineering"'
+    - "Engineering Manager"
+    - "IT Director"
+    - "Data Science Manager"
+    - "Software Development Manager"
+    - "CTO"
+    - "VP of Engineering"
     

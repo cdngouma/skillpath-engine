@@ -183,7 +183,7 @@ def map_roles(df, yaml_path, full_report=False):
     """
     noc_lookup = get_noc_lookup(yaml_path)
     
-    print("Initializing Semantic Model...")
+    logger.info("Initializing Semantic Model...")
     model = SentenceTransformer("all-MiniLM-L6-v2")
 
     unique_terms = list(noc_lookup.keys())
@@ -197,11 +197,11 @@ def map_roles(df, yaml_path, full_report=False):
         noc_lookup=noc_lookup,
     )
 
-    print(f"Mapping {len(df)} roles...")
+    logger.info(f"Mapping {len(df)} roles...")
     results = df.apply(match_func, axis=1)
 
     if full_report:
         return pd.concat([df, results], axis=1)
     
     # Minimalist Silver Layer output
-    return results[["assigned_noc", "confidence_score"]]
+    return pd.concat([df, results[["assigned_noc", "confidence_score"]]], axis=1)
