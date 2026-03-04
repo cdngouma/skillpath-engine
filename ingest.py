@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 
 # Config mapping for StatCan Table IDs to local names and config files
 STATCAN_CONFIG = {
-    "98100412": ("sc_income_2021_raw", "statcan_census_income.yaml"),
-    "98100449": ("sc_lfs_2021_raw", "statcan_census_lfs.yaml"),
-    "14100417": ("sc_wages_raw", "statcan_annual_wages.yaml"),
-    "14100416": ("sc_labour_force_raw", "statcan_annual_lfs.yaml"),
-    "37100276": ("sc_graduates_raw", "statcan_annual_graduates.yaml")
+    "98100412": ("sc_census_income_raw", "statcan_census_income.yaml"),
+    "98100449": ("sc_census_labour_raw", "statcan_census_labour.yaml"),
+    "14100417": ("sc_wages_trends_raw", "statcan_wages_trends.yaml"),
+    "14100416": ("sc_labour_trends_raw", "statcan_labour_trends.yaml"),
+    "37100276": ("sc_graduates_trends_raw", "statcan_graduates_trends.yaml")
 }
 
 def ingest_statcan(mode="build", table_id="all"):

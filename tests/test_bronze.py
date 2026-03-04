@@ -12,11 +12,11 @@ def test_table_existence():
     with get_connection() as conn:
         expected_tables = [
             "job_postings_raw",
-            "census_income_2021_raw",
-            "census_labour_force_2021_raw",
-            "annual_wages_raw",
-            "annual_labour_force_raw",
-            "annual_graduates_raw"
+            "sc_graduates_trends_raw",
+            "sc_census_income_raw",
+            "sc_labour_trends_raw",
+            "sc_census_labour_raw",
+            "sc_wages_trends_raw"
         ]
     
         tables = conn.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'bronze'").fetchall()
