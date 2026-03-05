@@ -19,7 +19,8 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-PAGES_PER_JOB = 5
+PAGES_PER_JOB = 1
+DB_PATH = "data/warehouse.duckdb"
 
 def load_config(cfg_path="config/role_mapping.yaml"):
     with open(cfg_path, "r") as f:
@@ -65,68 +66,73 @@ def fetch_adzuna_jobs(what, pages=5, results_per_page=50):
             logger.error(f"Error: {response.status_code}: {response.text}")
             break
     return all_jobs
-        
-def process_single_job(job, search_term, full_description, redirect_url):
-    """Parses a single job into the standard schema format matching DuckDB exactly."""
-    return {
-        "job_hash": generate_job_hash(job),
-        "adzuna_id": str(job.get('id')),
-        "title": job.get('title'),
-        "company": job.get('company', {}).get('display_name'),
-        "created_at": job.get('created'),
-        "category": job.get('category', {}).get('label'),
-        "location": job.get('location', {}).get('display_name', 'Canada'),
-        "description": full_description,
-        "search_term": search_term,
-        "ingested_at": datetime.datetime.now(),
-        "source": "Adzuna",
-        "redirect_url": redirect_url
-    }
 
 def ingest_jobs_to_bronze(mode="update"):
     config = load_config()
     role_mapping = config['role_mapping']
-    #session = get_stealth_session()
-
-    with duckdb.connect("data/warehouse.duckdb") as con:
+    
+    # Establish connection once
+    with duckdb.connect(DB_PATH) as con:
         if mode == "build":
+            logger.warning("Truncating bronze.job_postings_raw...")
             con.execute("TRUNCATE TABLE bronze.job_postings_raw;")
-        
+
         for noc_code, search_terms in role_mapping.items():
             for term in search_terms:
                 logger.info(f"--- Processing {term} (NOC {noc_code}) ---")
+                
+                # 1. Fetch existing hashes for this term to avoid N+1 queries
+                existing_hashes = set(
+                    r[0] for r in con.execute(
+                        "SELECT job_hash FROM bronze.job_postings_raw WHERE search_term = ?", 
+                        [term]
+                    ).fetchall()
+                )
+                
                 jobs_raw = fetch_adzuna_jobs(what=term, pages=PAGES_PER_JOB)
                 new_jobs_list = []
                 
                 for job in jobs_raw:
-                    j_hash = generate_job_hash(job)
-                    exists = con.execute(
-                        "SELECT 1 FROM bronze.job_postings_raw WHERE job_hash = ?", [j_hash]
-                    ).fetchone()
+                    job_hash = generate_job_hash(job)
                     
-                    if not exists:
-                        logger.info(f"Scrapping job description for: '{job.get('title')}' @ '{job.get('company', {}).get('display_name')}'...")
-                        redirect_url = job.get('redirect_url')
-                        full_desc = fetch_job_description_playwright(redirect_url)
-                        final_desc = full_desc if full_desc else job.get('description')
-                        
-                        job_data = process_single_job(job, term, final_desc, redirect_url)
-                        new_jobs_list.append(job_data)
-                        time.sleep(1.0)
-                    else:
-                        logger.info(f"--Skipped: '{job.get('title')}' @ '{job.get('company', {}).get('display_name')}'...")
+                    # 2. Fast in-memory check
+                    if job_hash in existing_hashes:
+                        continue
 
+                    logger.info(f"Scraping: '{job.get('title')}' @ '{job.get('company', {}).get('display_name')}'")
+                    
+                    # Scrape full description
+                    redirect_url = job.get('redirect_url')
+                    full_desc = fetch_job_description_playwright(redirect_url)
+                    final_desc = full_desc if full_desc else job.get('description')
+                    
+                    # 3. Prepare data for the DataFrame
+                    new_jobs_list.append({
+                        "job_hash": job_hash,
+                        "description": final_desc,
+                        "search_term": term,
+                        "ingested_at": datetime.datetime.now(),
+                        "source": "Adzuna",
+                        # Convert dict to JSON string for DuckDB JSON type
+                        "raw_payload": json.dumps(job) 
+                    })
+                    
+                    # Rate limiting for Playwright
+                    time.sleep(1.0)
+
+                # 4. Bulk Insert
                 if new_jobs_list:
                     df = pd.DataFrame(new_jobs_list)
-
-                    # Defining the column order explicitly
-                    cols = [
-                        "job_hash", "adzuna_id", "title", "company", "created_at", 
-                        "category", "location", "description", "search_term", 
-                        "ingested_at", "source", "redirect_url"
-                    ]
-                    col_string = ", ".join(cols)
-                    con.execute(f"INSERT OR IGNORE INTO bronze.job_postings_raw ({col_string}) SELECT * FROM df")
-                    logger.info(f"Successfully inserted {len(new_jobs_list)} new jobs.")
+                    
+                    # DuckDB can query the Pandas DataFrame 'df' directly in the same scope
+                    query = """
+                        INSERT INTO bronze.job_postings_raw 
+                        (job_hash, description, search_term, ingested_at, source, raw_payload)
+                        SELECT job_hash, description, search_term, ingested_at, source, raw_payload
+                        FROM df
+                    """
+                    con.execute(query)
+                    logger.info(f"Successfully inserted {len(new_jobs_list)} new jobs for {term}.")
                 
+                # Cooldown between search terms
                 time.sleep(2.0)
