@@ -19,7 +19,8 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-PAGES_PER_JOB = 1
+PAGES_PER_JOB = 5
+RESULTS_PER_PAGE = 50
 DB_PATH = "data/warehouse.duckdb"
 
 def load_config(cfg_path="config/role_mapping.yaml"):
@@ -50,7 +51,7 @@ def fetch_adzuna_jobs(what, pages=5, results_per_page=50):
         params = {
             "app_id": app_id,
             "app_key": app_key,
-            "results_per_page": 50,
+            "results_per_page": RESULTS_PER_PAGE,
             "what": what,
             "category": "it-jobs",        # Filters out non-tech noise
             "salary_include_unknown": 1,  # Ensures we get volume/demand metrics
@@ -93,6 +94,10 @@ def ingest_jobs_to_bronze(mode="update"):
                 new_jobs_list = []
                 
                 for job in jobs_raw:
+                    if not job:
+                        logger.warning("Empty response")
+                        continue
+                    
                     job_hash = generate_job_hash(job)
                     
                     # 2. Fast in-memory check

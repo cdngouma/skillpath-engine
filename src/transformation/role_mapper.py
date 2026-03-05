@@ -148,7 +148,7 @@ def build_synthetic_title(clean_title: str, anchor: str) -> str:
 # -----------------------------
 
 def get_synthetic_match(row, model, unique_terms, term_embeddings, noc_lookup):
-    original_title = str(row["title"])
+    original_title = str(row["job_title"])
     clean_title = smart_clean_title(original_title)
 
     anchor = find_anchor(clean_title, unique_terms)

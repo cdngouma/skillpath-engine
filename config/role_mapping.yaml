@@ -106,13 +106,4 @@ role_mapping:
     - "React Developer"
     - "JavaScript Developer"
     - "WordPress Developer"
-  
-  # 20012: Computer and information systems managers
-  "20012":
-    - "Engineering Manager"
-    - "IT Director"
-    - "Data Science Manager"
-    - "Software Development Manager"
-    - "CTO"
-    - "VP of Engineering"
     
