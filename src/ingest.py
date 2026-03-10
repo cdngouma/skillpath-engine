@@ -3,9 +3,9 @@ import re
 import argparse
 import logging
 from dotenv import load_dotenv
-from src.init_warehouse import init_warehouse
-from src.ingestion.statcan_loader import ingest_statcan_to_bronze
-from src.ingestion.job_board_loader import ingest_jobs_to_bronze
+from init_warehouse import init_warehouse
+from ingestion import statcan_ingestor
+from ingestion import adzuna_ingestor
 
 # Setup basic logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -23,8 +23,8 @@ STATCAN_CONFIG = {
 def ingest_statcan(mode="build", table_id="all"):
     if table_id == "all":
         for tid, (t_name, source_cfg) in STATCAN_CONFIG.items():
-            ingest_statcan_to_bronze(
-                cfg_path=f"config/data_sources/{source_cfg}", 
+            statcan_ingestor.ingest(
+                cfg_path=f"../config/data_sources/{source_cfg}", 
                 table_name=t_name, 
                 mode=mode
             )
@@ -32,8 +32,8 @@ def ingest_statcan(mode="build", table_id="all"):
         config_entry = STATCAN_CONFIG.get(table_id)
         if config_entry:
             t_name, source_cfg = config_entry
-            ingest_statcan_to_bronze(
-                cfg_path=f"config/data_sources/{source_cfg}", 
+            statcan_ingestor.ingest(
+                cfg_path=f"../config/data_sources/{source_cfg}", 
                 table_name=t_name, 
                 mode=mode
             )
@@ -61,7 +61,7 @@ def main(mode="build", source="all"):
     # 4. Adzuna Routing
     if source == "all" or source == "adzuna":
         logger.info("Starting ingestion for Adzuna Job Postings...")
-        ingest_jobs_to_bronze(mode=mode)
+        adzuna_ingestor.ingest(mode=mode)
 
     logger.info("Pipeline execution complete.")
 

@@ -1,15 +1,11 @@
 import yaml
 
-def get_noc_lookup(yaml_path: str) -> dict:
-    """
-    Loads role mapping from YAML and inverts it for fast lookup.
-    Returns: { "Search Term": "NOC Code" }
-    """
+def get_noc_lookup(yaml_path):
     with open(yaml_path, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
     
     lookup = {}
-    # Access the specific 'role_mapping' key in your YAML
+    
     for noc, terms in config.get('role_mapping', {}).items():
         for term in terms:
             clean_term = term.replace('"', '').strip()
@@ -17,10 +13,6 @@ def get_noc_lookup(yaml_path: str) -> dict:
     return lookup
 
 def cip_to_noc(cip):
-    """
-    Maps Classification of Instructional Programs (CIP) to primary tech NOCs.
-    Focuses on 11.xx (Computer Science) and 27.xx (Math/Stats).
-    """
     cip_str = str(cip).lower().strip()
     if "computer science" in cip_str or "11." in cip_str:
         return "2122"
@@ -29,10 +21,6 @@ def cip_to_noc(cip):
     return "Unknown"
 
 def occupation_to_noc(occupation):
-    """
-    Maps an official occupation title or broad category to its 5-digit NOC 2021 code.
-    This is a strict mapper with no heuristic fallback.
-    """
     if not occupation:
         return None
 

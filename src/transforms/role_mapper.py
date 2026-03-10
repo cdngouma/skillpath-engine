@@ -4,13 +4,12 @@ from functools import partial
 import pandas as pd
 import torch
 from sentence_transformers import SentenceTransformer, util
-from noc_mapping import get_noc_lookup
+from src.noc_mapping import get_noc_lookup
 import logging
+
 logger = logging.getLogger(__name__)
 
-# -----------------------------
-# Text utilities
-# -----------------------------
+# ---- Utilities functions ----
 
 def _strip_accents(s: str) -> str:
     return "".join(
@@ -27,9 +26,7 @@ def _normalize_separators(s: str) -> str:
 def _collapse_spaces(s: str) -> str:
     return " ".join(s.split()).strip()
 
-# -----------------------------
-# Config & Regex Compilation
-# -----------------------------
+# ---- Config & Regex Compilation ----
 
 # Seniority/Level noise
 SENIORITY_RE = re.compile(r"\b(staff|senior|sr\.?|jr\.?|junior|intermediate|lead|principal|internship|intern)\b", re.I)
@@ -81,11 +78,7 @@ def _compile_protected_regexes(protected_phrases):
 PROTECTED_REGEXES = _compile_protected_regexes(PROTECTED_PHRASES)
 SEGMENT_SPLIT_RE = re.compile(r"\s*(?:,| - |–|\||:|;)\s*", re.I)
 
-# -----------------------------
-# Logic Functions
-# -----------------------------
-
-def smart_clean_title(raw_text: str) -> str:
+def _smart_clean_title(raw_text):
     if not raw_text: return ""
     text = str(raw_text).lower()
     text = _strip_accents(text)
@@ -103,7 +96,7 @@ def smart_clean_title(raw_text: str) -> str:
 
     return _collapse_spaces(text)
 
-def extract_protected_terms(text: str) -> list[str]:
+def _extract_protected_terms(text):
     if not text: return []
     found, used_spans = [], []
     for phrase, rx in PROTECTED_REGEXES:
@@ -120,7 +113,7 @@ def extract_protected_terms(text: str) -> list[str]:
             out.append(t); seen.add(t)
     return out
 
-def find_anchor(clean_title: str, unique_terms: list[str]) -> str:
+def _find_anchor(clean_title, unique_terms):
     if not clean_title: return None
     t = clean_title.lower()
     for term in sorted(unique_terms, key=len, reverse=True):
@@ -129,7 +122,7 @@ def find_anchor(clean_title: str, unique_terms: list[str]) -> str:
             return term.lower()
     return None
 
-def build_synthetic_title(clean_title: str, anchor: str) -> str:
+def _build_semantic_title(clean_title, anchor):
     if not clean_title: return ""
     if anchor: return anchor  # RULE: Anchor exists? Use it alone.
 
@@ -139,20 +132,16 @@ def build_synthetic_title(clean_title: str, anchor: str) -> str:
     base = parts[0]
     modifiers = []
     for p in parts[1:]:
-        modifiers.extend(extract_protected_terms(p))
+        modifiers.extend(_extract_protected_terms(p))
 
     return _collapse_spaces(base + " " + " ".join(modifiers))
 
-# -----------------------------
-# Orchestration
-# -----------------------------
-
-def get_synthetic_match(row, model, unique_terms, term_embeddings, noc_lookup):
+def _get_semantic_match(row, model, unique_terms, term_embeddings, noc_lookup):
     original_title = str(row["job_title"])
-    clean_title = smart_clean_title(original_title)
+    clean_title = _smart_clean_title(original_title)
 
-    anchor = find_anchor(clean_title, unique_terms)
-    synthetic_title = build_synthetic_title(clean_title, anchor)
+    anchor = _find_anchor(clean_title, unique_terms)
+    synthetic_title = _build_semantic_title(clean_title, anchor)
 
     if anchor and anchor in unique_terms:
         best_term = anchor
@@ -171,7 +160,7 @@ def get_synthetic_match(row, model, unique_terms, term_embeddings, noc_lookup):
         "clean_title": clean_title,
         "matched_label": best_term,
         "confidence_score": round(max_score * 100, 2),
-        "assigned_noc": noc_lookup.get(best_term),
+        "matched_noc": noc_lookup.get(best_term),
         "match_method": method
     })
 
@@ -190,7 +179,7 @@ def map_roles(df, yaml_path, full_report=False):
     term_embeddings = model.encode(unique_terms, convert_to_tensor=True)
 
     match_func = partial(
-        get_synthetic_match,
+        _get_semantic_match,
         model=model,
         unique_terms=unique_terms,
         term_embeddings=term_embeddings,
@@ -204,4 +193,4 @@ def map_roles(df, yaml_path, full_report=False):
         return pd.concat([df, results], axis=1)
     
     # Minimalist Silver Layer output
-    return pd.concat([df, results[["assigned_noc", "confidence_score"]]], axis=1)
+    return pd.concat([df, results[["matched_noc", "confidence_score"]]], axis=1)
