@@ -20,6 +20,8 @@ STATCAN_CONFIG = {
     "37100276": ("sc_graduates_trends_raw", "statcan_graduates_trends.yaml")
 }
 
+DB_PATH = "../data/warehouse.duckdb"
+
 def ingest_statcan(mode="build", table_id="all"):
     if table_id == "all":
         for tid, (t_name, source_cfg) in STATCAN_CONFIG.items():
@@ -48,9 +50,9 @@ def main(mode="build", source="all"):
 
     # 2. Environment & Database Prep
     load_dotenv()
-    if not os.path.exists("data/warehouse.duckdb"):
+    if not os.path.exists(DB_PATH):
         logger.info("Database not found. Initializing warehouse...")
-        init_warehouse(db_path="data/warehouse.duckdb")
+        init_warehouse(db_path=DB_PATH)
 
     # 3. StatCan Routing
     # If source is 'all' or an 8-digit number, we handle StatCan

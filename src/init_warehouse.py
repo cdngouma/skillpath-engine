@@ -13,7 +13,7 @@ def run_sql_file(conn, file_path):
     # Execute the entire script
     conn.execute(sql_query)
 
-def init_warehouse(db_path="data/warehouse.duckdb"):
+def init_warehouse(db_path="../data/warehouse.duckdb"):
     with duckdb.connect(db_path) as conn:
         # Initialize database
         run_sql_file(conn, "sql/init_database.sql")

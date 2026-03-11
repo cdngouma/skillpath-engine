@@ -16,11 +16,12 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-PAGES_PER_JOB = 1
-RESULTS_PER_PAGE = 2
-DB_PATH = "data/warehouse.duckdb"
+PAGES_PER_JOB = 5
+RESULTS_PER_PAGE = 50
+DB_PATH = "../data/warehouse.duckdb"
+ROLE_MAPPING_CFG = "../config/role_mapping.yaml"
 
-def _load_config(cfg_path="config/role_mapping.yaml"):
+def _load_config(cfg_path=ROLE_MAPPING_CFG):
     with open(cfg_path, "r") as f:
         return yaml.safe_load(f)
 
@@ -81,20 +82,13 @@ def _get_existing_hashes(con, term):
 def _should_scrape(api_desc, min_len=500):
     return len(api_desc or "") <= min_len
 
-def _get_best_description(job, scraper, min_len=500):
-    """
-    Prefer scraped description when API description is short and redirect_url exists.
-    """
-    api_desc = job.get("description") or ""
-    if not _should_scrape(api_desc, min_len=min_len):
-        return api_desc
-
+def _get_raw_description(job, scraper, min_len=500):
     redirect_url = job.get("redirect_url")
     if not redirect_url:
-        return api_desc
-
+        return None
+    
     scraped = scraper.fetch(redirect_url)
-    return scraped if scraped else api_desc
+    return scraped if scraped else None
 
 def _insert_rows(con, rows):
     if not rows:
@@ -103,17 +97,17 @@ def _insert_rows(con, rows):
     df = pd.DataFrame(rows)
     query = """
         INSERT INTO bronze.job_postings_raw
-        (job_hash, description, search_term, ingested_at, source, raw_payload)
-        SELECT job_hash, description, search_term, ingested_at, source, raw_payload
+        (job_hash, description_html, search_term, ingested_at, source, raw_payload)
+        SELECT job_hash, description_html, search_term, ingested_at, source, raw_payload
         FROM df
     """
     con.execute(query)
     return len(rows)
 
-def _build_bronze_row(job_hash: str, term: str, job_desc: str, job: dict) -> dict:
+def _build_bronze_row(job_hash, term, job_desc_html, job):
     return {
         "job_hash": job_hash,
-        "description": job_desc,
+        "description_html": job_desc_html,
         "search_term": term,
         "ingested_at": datetime.datetime.now(),
         "source": "Adzuna",
@@ -138,8 +132,8 @@ def _process_term(con, term, jobs_raw, scraper, existing_hashes):
         # logging kept, but moved up so loop stays readable
         logger.info(f"Scraping: '{job.get('title')}' @ '{job.get('company', {}).get('display_name')}'")
 
-        job_desc = _get_best_description(job, scraper, min_len=500)
-        new_rows.append(_build_bronze_row(job_hash, term, job_desc, job))
+        job_desc_html = _get_raw_description(job, scraper, min_len=500)
+        new_rows.append(_build_bronze_row(job_hash, term, job_desc_html, job))
 
         time.sleep(1.0)  # rate limit per job
 
@@ -172,3 +166,5 @@ def ingest(mode="update"):
                     )
 
                     time.sleep(2.0)  # cooldown between search terms
+                
+                logger.info(f"Ingestion %{(counter/n_iters):.0f} completed.")

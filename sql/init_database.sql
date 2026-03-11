@@ -6,7 +6,7 @@ CREATE SCHEMA IF NOT EXISTS gold;
 -- 2 Run Table Definitions
 CREATE TABLE IF NOT EXISTS bronze.job_postings_raw (
     job_hash VARCHAR PRIMARY KEY,
-    description VARCHAR,
+    description_html VARCHAR,
     search_term VARCHAR,
     ingested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     source VARCHAR,
