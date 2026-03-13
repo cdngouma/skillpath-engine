@@ -4,7 +4,7 @@ from functools import partial
 import pandas as pd
 import torch
 from sentence_transformers import SentenceTransformer, util
-from src.noc_mapping import get_noc_lookup
+from noc_mapping import get_noc_lookup
 import logging
 
 logger = logging.getLogger(__name__)
@@ -148,7 +148,7 @@ def _get_semantic_match(row, model, unique_terms, term_embeddings, noc_lookup):
         max_score = 1.0
         method = "Anchor"
     else:
-        title_embedding = model.encode(synthetic_title, convert_to_tensor=True)
+        title_embedding = model.encode(synthetic_title, convert_to_tensor=True, show_progress_bar=False)
         cosine_scores = util.cos_sim(title_embedding, term_embeddings)[0]
         best_idx = int(torch.argmax(cosine_scores).item())
         max_score = float(cosine_scores[best_idx].item())
@@ -176,7 +176,7 @@ def map_roles(df, yaml_path, full_report=False):
     model = SentenceTransformer("all-MiniLM-L6-v2")
 
     unique_terms = list(noc_lookup.keys())
-    term_embeddings = model.encode(unique_terms, convert_to_tensor=True)
+    term_embeddings = model.encode(unique_terms, convert_to_tensor=True, show_progress_bar=False)
 
     match_func = partial(
         _get_semantic_match,

@@ -1,115 +1,202 @@
+from bs4 import BeautifulSoup, NavigableString, Tag
 import re
 
-SKILL_SECTION_HEADERS = [
-    # Most common in job posts (top → lower frequency)
-    "requirements",
-    "qualifications",
-    "what you'll bring",
-    "what you will bring",
-    "what we're looking for",
-    "what we are looking for",
-    "what you need",
-    "what you bring",
-    "skills",
-    "technical skills",
-    "core experience",
-    "must have",
-    "nice to have",
-    "preferred qualifications",
-    "preferred skills",
-    "bonus points",
-    "our tech stack",
-    "who we're looking for",
-    "who we are looking for",
-    "how to be successful",
+# Header fragments / concepts, not full exact titles
+SKILL_HEADER_PATTERNS = [
+    r"\brequirements?\b",
+    r"\bqualifications?\b",
+    r"\brequired qualifications?\b",
+    r"\bminimum qualifications?\b",
+    r"\bpreferred qualifications?\b",
+    r"\bother qualifications?\b",
+    r"\bbasic qualifications?\b",
+    r"\bmust[- ]?haves?\b",
+    r"\bmust have\b",
+    r"\btechnical (skills|expertise)\b",
+    r"\bskills?\b",
+    r"\bcore engineering skills?\b",
+    r"\bexperience\b",
+    r"\bexperience\s*&\s*qualifications?\b",
+    r"\bqualifications?\s*&\s*experience\b",
+    r"\bwhat you('ll| will) bring\b",
+    r"\bhere('?s| is) what you('ll| will) bring\b",
+    r"\byou bring\b",
+    r"\bwhat we are looking for\b",
+    r"\bwhat we're looking for\b",
+    r"\bwhat you need to have\b",
+    r"\bour ideal candidate\b",
+    r"\byou('?re| are) our ideal candidate\b",
+    r"\bideal candidate\b",
+    r"\bhow you will succeed\b",
+    r"\byour responsibilities\b",
+    r"\btechnical expertise\b",
 ]
 
-# Headers that often indicate the start of a NEW section (end extraction here).
-STOP_SECTION_HEADERS = [
-    "how we hire",
-    "additional job details",
-    "learn more",
-    "why join",
-    "equal opportunity",
-    "eeoc",
-    "eoe",
-    "benefits",
-    "about us",
-    "who we are",
-    "company",
-    "our values",
-    "how we work",
-    "compensation",
-    "salary",
-    "privacy",
-    "our team culture"
-]
+HEADER_RX = re.compile("|".join(SKILL_HEADER_PATTERNS), re.IGNORECASE)
 
-APOS = r"['’‘ʼ]"  # common apostrophe variants
-LETTER = r"A-Za-zÀ-ÖØ-öø-ÿ"
+BULLET_LINE_RX = re.compile(r"^\s*(?:•|‣|◦|\*|-)\s+")
 
-HEADER_LINE_PATTERN = (
-    r"(?m)^\s*"
-    r"(?:[" + LETTER + r"& ]|" + APOS + r")*?"
-    r"\b({alts})\b"
-    r"(?:[" + LETTER + r"& ]|" + APOS + r"|:)*"
-    r"\s*$" 
-)
-
-header_regex = re.compile(
-    HEADER_LINE_PATTERN.format(alts="|".join(re.escape(h) for h in SKILL_SECTION_HEADERS)),
-    flags=re.IGNORECASE,
-)
-
-# Stop headers: must appear at beginning of the line.
-# Allow trailing header text but keep it "header-like".
-stop_header_regex = re.compile(
-    r"(?mi)^\s*(?:"
-    + "|".join(re.escape(h) for h in STOP_SECTION_HEADERS)
-    + r")\b[^\n]*$"
-)
-
-# Generic fallback: a line that looks like a section header (single line, 2–60 chars)
-# (We use case-insensitive and don't require caps to avoid Task Manager / lowercasing issues.)
-generic_next_header_regex = re.compile(
-    r"(?m)^\s*[" + LETTER + r"][" + LETTER + r" &" + APOS + r"]{1,60}\s*$"
-)
+STOPWORDS = {
+    "the", "a", "an", "and", "or", "to", "of", "in", "on", "for", "with",
+    "by", "at", "from", "as", "is", "are", "be", "will", "you", "your",
+    "our", "we", "their", "they", "this", "that", "these", "those"
+}
 
 
-def _find_earliest_match(rx: re.Pattern, text):
-    """Return the leftmost match among all matches, or None."""
-    text_norm = text.replace("\u00A0", " ")
-    matches = list(rx.finditer(text_norm))
-    if not matches:
-        return None
-    return min(matches, key=lambda m: m.start())
-
-
-def extract_skills_section(text):
+def _normalize_text(text: str) -> str:
     if not text:
-        return text
+        return ""
+    text = text.replace("\xa0", " ")
+    text = re.sub(r"&amp;", "&", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
 
-    # 1) Find earliest skill header occurrence among ALL possible header matches
-    match = _find_earliest_match(header_regex, text)
-    if not match:
-        return text
 
-    start = match.end()
+def _strip_stopwords(text: str) -> str:
+    words = re.findall(r"\b[\w.+#/-]+\b|[^\w\s]", text, flags=re.UNICODE)
+    cleaned = []
+    for w in words:
+        if re.match(r"\b[\w.+#/-]+\b", w):
+            if w.lower() not in STOPWORDS:
+                cleaned.append(w)
+        else:
+            cleaned.append(w)
 
-    tail = text[start:]
+    out = " ".join(cleaned)
+    out = re.sub(r"\s+([,.;:])", r"\1", out)
+    out = re.sub(r"\s+", " ", out).strip()
+    return out
 
-    # 2) Determine end:
-    #   a) First: explicit STOP headers at beginning-of-line
-    stop = _find_earliest_match(stop_header_regex, tail)
 
-    #   b) Else: generic header-looking line
-    generic = _find_earliest_match(generic_next_header_regex, tail)
+def _clean_item_text(text: str) -> str:
+    text = _normalize_text(text)
+    text = BULLET_LINE_RX.sub("", text)
+    return _strip_stopwords(text)
 
-    # Choose earliest end if present
-    candidates = [m for m in [stop, generic] if m is not None]
-    if candidates:
-        end = start + min(candidates, key=lambda m: m.start()).start()
-    else:
-        end = len(text)
 
-    return text[start:end].strip()
+def _text_matches_header(text: str) -> bool:
+    text = _normalize_text(text)
+    return bool(text and HEADER_RX.search(text))
+
+
+def _extract_text_from_candidate(node) -> str:
+    if node is None:
+        return ""
+
+    if isinstance(node, NavigableString):
+        return _normalize_text(str(node))
+
+    if isinstance(node, Tag):
+        return _normalize_text(node.get_text(" ", strip=True))
+
+    return ""
+
+
+def _nearest_preceding_text(list_tag: Tag, max_steps: int = 5) -> str:
+    """
+    Look at nearby previous siblings first.
+    This is more precise than a broad find_previous().
+    """
+    current = list_tag
+    steps = 0
+
+    while steps < max_steps:
+        current = current.previous_sibling
+        if current is None:
+            break
+
+        text = _extract_text_from_candidate(current)
+        if text:
+            return text
+
+        steps += 1
+
+    # fallback: broader structural search upward
+    prev = list_tag.find_previous(["p", "div", "strong", "b", "h1", "h2", "h3", "h4"])
+    return _extract_text_from_candidate(prev)
+
+
+def _extract_list_items(list_tag: Tag) -> list[str]:
+    items = []
+    for li in list_tag.find_all("li"):
+        txt = _clean_item_text(li.get_text(" ", strip=True))
+        if txt:
+            items.append(txt)
+    return items
+
+
+def _extract_all_lists(soup: BeautifulSoup) -> list[str]:
+    items = []
+    for list_tag in soup.find_all(["ul", "ol"]):
+        items.extend(_extract_list_items(list_tag))
+    return items
+
+
+def _extract_bullet_points_with_context(soup: BeautifulSoup) -> list[str]:
+    extracted = []
+
+    for element in soup.find_all(["p", "div"]):
+        text = _normalize_text(element.get_text(" ", strip=True))
+        if not text or not BULLET_LINE_RX.match(text):
+            continue
+
+        context = ""
+        sibling = element.previous_sibling
+        hops = 0
+        while sibling is not None and hops < 5:
+            candidate = _extract_text_from_candidate(sibling)
+            if candidate and not BULLET_LINE_RX.match(candidate):
+                context = candidate
+                break
+            sibling = getattr(sibling, "previous_sibling", None)
+            hops += 1
+
+        if not context:
+            prev = element.find_previous(["p", "div", "strong", "b", "h1", "h2", "h3", "h4"])
+            context = _extract_text_from_candidate(prev)
+
+        if _text_matches_header(context):
+            cleaned = _clean_item_text(text)
+            if cleaned:
+                extracted.append(cleaned)
+
+    return extracted
+
+
+def extract_skills_section(html_content: str) -> str:
+    """
+    Strategy:
+    1. Find UL/OL lists whose nearest preceding text matches a skill/requirements header.
+    2. If none found, return all UL/OL text content.
+    3. If no lists exist, use visual bullet-point fallback with contextual header matching.
+    4. If still nothing, return full text content.
+    5. Remove stopwords before returning.
+    """
+    if not html_content:
+        return ""
+
+    soup = BeautifulSoup(html_content, "html.parser")
+
+    # 1) Targeted list extraction
+    extracted = []
+    for list_tag in soup.find_all(["ul", "ol"]):
+        context_text = _nearest_preceding_text(list_tag)
+        if _text_matches_header(context_text):
+            extracted.extend(_extract_list_items(list_tag))
+
+    if extracted:
+        return "\n".join(extracted).strip()
+
+    # 2) Fallback: all UL/OL items
+    all_list_items = _extract_all_lists(soup)
+    if all_list_items:
+        return "\n".join(all_list_items).strip()
+
+    # 3) Fallback: visual bullet points with contextual header matching
+    bullet_items = _extract_bullet_points_with_context(soup)
+    if bullet_items:
+        return "\n".join(bullet_items).strip()
+
+    # 4) Final fallback: full text content
+    full_text = _normalize_text(soup.get_text("\n", strip=True))
+    return _strip_stopwords(full_text)

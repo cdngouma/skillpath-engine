@@ -1,10 +1,16 @@
 import pandas as pd
 import duckdb
 import re
-from src.transforms.role_mapper import map_roles
-from src.noc_mapping import occupation_to_noc, cip_to_noc
-from src.transforms.skills_extractor import extract_tech_skills
-from src.transforms.skills_section_extractor import extract_skills_section
+import time
+from transforms.role_mapper import map_roles
+from noc_mapping import occupation_to_noc, cip_to_noc
+from transforms.skills_extractor import extract_tech_skills
+from transforms.skills_section_extractor import extract_skills_section
+import logging
+from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 ROLE_MAPPING_PATH = "../config/role_mapping.yaml"
 
@@ -20,7 +26,7 @@ EDUCATION_MAP = {
     "Mathematics and statistics": "Mathematics and statistics"
 }
 
-TABLE_NAMES = {
+BRONZE_TABLES = {
     # StatCan table names
     "census_income": "sc_census_income_raw",
     "census_labour": "sc_census_labour_raw",
@@ -72,17 +78,6 @@ def _apply_standard_noc_schema(df, rename_map=None):
     elif "field_of_study" in df.columns:
         df["noc_code"] = df["field_of_study"].apply(cip_to_noc)
 
-    if "noc_code" in df.columns:
-        # Generate granular NOC columns
-        # Ensure noc_code is a string for slicing
-        df["noc_code"] = df["noc_code"].astype(str)
-        
-        # Create noc-5: only if the code is at least 5 digits long
-        df["noc_5"] = df["noc_code"].apply(lambda x: x if len(x) >= 5 else None)
-        
-        # Create noc-3: the first 3 digits of the code
-        df["noc_3"] = df["noc_code"].apply(lambda x: x[:3] if len(x) >= 3 else None)
-
     if "date" in df.columns:
         df["date"] = pd.to_datetime(df["date"])
         
@@ -93,7 +88,7 @@ def _apply_standard_noc_schema(df, rename_map=None):
 
 def transform_graduates(limit=None):
     return _apply_standard_noc_schema(
-        _pivot_and_clean_bronze(TABLE_NAMES["graduates"], limit=limit),
+        _pivot_and_clean_bronze(BRONZE_TABLES["graduates"], limit=limit),
         rename_map={
             "International Standard Classification of Education (ISCED)": "education_level",
             "Field of study": "field_of_study",
@@ -102,22 +97,20 @@ def transform_graduates(limit=None):
         }
     )
 
-def transform_income_trends(limit=None):
+def transform_wages_trends(limit=None):
     df = _apply_standard_noc_schema(
-        _pivot_and_clean_bronze(TABLE_NAMES["wage_trends"], keeps=["REF_DATE", "National Occupational Classification (NOC)"], limit=limit),
+        _pivot_and_clean_bronze(BRONZE_TABLES["wage_trends"], keeps=["REF_DATE", "National Occupational Classification (NOC)"], limit=limit),
         rename_map={
             "National Occupational Classification (NOC)": "occupation",
             "REF_DATE": "date",
             "VALUE": "weekly_wages"
         }
     )
-    # 52 weeks alignment for Gold-ready annualization
-    df["median_income"] = df["weekly_wages"] * 52
     return df
 
 def transform_census_income(limit=None):
     return _apply_standard_noc_schema(
-        _pivot_and_clean_bronze(TABLE_NAMES["census_income"], limit=limit),
+        _pivot_and_clean_bronze(BRONZE_TABLES["census_income"], limit=limit),
         rename_map={
             "Occupation - Unit group - National Occupational Classification (NOC) 2021 (821A)": "occupation",
             "Highest certificate, diploma or degree (16)": "education_level",
@@ -129,7 +122,7 @@ def transform_census_income(limit=None):
 def transform_census_labour(limit=None):
     pivot_col = "labour force status (3)"
     df = _apply_standard_noc_schema(
-        _pivot_and_clean_bronze(TABLE_NAMES["census_labour"], pivot_cols=[pivot_col], limit=limit),
+        _pivot_and_clean_bronze(BRONZE_TABLES["census_labour"], pivot_cols=[pivot_col], limit=limit),
         rename_map={
             "Occupation - Unit group - National Occupational Classification (NOC) 2021 (821A)": "occupation",
             "Highest certificate, diploma or degree (16)": "education_level",
@@ -138,16 +131,15 @@ def transform_census_labour(limit=None):
             "Unemployed": "unemployed"
         }
     )
-    df = df.drop(columns="total - labour force status",errors="ignore")
+    df = df.drop(columns="total - labour force status", errors="ignore")
     df["labour_force"] = df["employed"] + df["unemployed"]
-    df["unemployment_rate"] = (df["unemployed"] / df["labour_force"]).mul(100).round(2)
     return df
 
 def transform_labour_trends(limit=None):
     pivot_col = "labour force characteristics"
     return _apply_standard_noc_schema(
         _pivot_and_clean_bronze(
-            TABLE_NAMES["labour_trends"],
+            BRONZE_TABLES["labour_trends"],
             keeps=["REF_DATE", "National Occupational Classification (NOC)"],
             pivot_cols=[pivot_col], 
             limit=limit
@@ -169,10 +161,9 @@ def transform_job_roles(threshold=71, limit=None):
                    search_term,
                    REPLACE(CAST(raw_payload->'title' AS VARCHAR), '"', '') AS job_title,
                    REPLACE(CAST(raw_payload->'company'->'display_name' AS VARCHAR), '\"', '') as company,
-                   description,
                    ingested_at,
                    source
-            FROM bronze.{TABLE_NAMES['job_postings']}
+            FROM bronze.{BRONZE_TABLES['job_postings']}
             WHERE COALESCE(REPLACE(CAST(raw_payload->'company'->'display_name' AS VARCHAR), '"', ''), '') <> ''
         """ + (f" LIMIT {limit}" if limit else "")
         df = con.execute(query).df()
@@ -185,34 +176,87 @@ def transform_job_roles(threshold=71, limit=None):
             
         return _apply_standard_noc_schema(df)
 
-def transform_job_skills(limit=None):
-    # Load raw job description
+def transform_job_skills(mode="build", limit=None):
     with duckdb.connect(DB_PATH) as con:
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS silver.job_skills (
+                job_hash VARCHAR,
+                skill_name VARCHAR
+            )
+        """)
+
+        if mode == "build":
+            con.execute("DELETE FROM silver.job_skills")
+        elif mode != "update":
+            raise ValueError(f"Unsupported mode: {mode}")
+
         query = f"""
-            SELECT job_hash, description
-            FROM bronze.{TABLE_NAMES['job_postings']}
-            WHERE description IS NOT NULL
+            SELECT p.job_hash, p.description_html
+            FROM bronze.{BRONZE_TABLES['job_postings']} p
+            WHERE p.description_html IS NOT NULL
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM silver.job_skills s
+                  WHERE s.job_hash = p.job_hash
+              )
         """ + (f" LIMIT {limit}" if limit else "")
 
         jobs = con.execute(query).df()
 
         rows = []
+        CHUNK_SIZE = 1000
+        start_time = time.perf_counter()
 
-        for _, row in jobs.iterrows():
-            job_hash = row['job_hash']
-            description = row['description']
+        iterator = jobs[["job_hash", "description_html"]].itertuples(index=False)
 
+        for job_hash, description in tqdm(
+            iterator,
+            total=len(jobs),
+            desc="Extracting job skills",
+            unit="job"
+        ):
             if not description:
                 continue
 
-            skills_section = extract_skills_section(description)
-            data = extract_tech_skills(skills_section)
+            try:
+                skills_section = extract_skills_section(description)
+                if not skills_section:
+                    continue
 
-            for skill in data.technical_skills:
-                rows.append({
-                    "job_hash": job_hash,
-                    "skill_name": skill.skill_name,
-                    "skill_category": skill.skill_category
-                })
-        
-        return pd.DataFrame(rows)
+                data = extract_tech_skills(skills_section)
+
+                for skill in data.technical_skills:
+                    rows.append({
+                        "job_hash": job_hash,
+                        "skill_name": skill.skill_name
+                    })
+
+                if len(rows) >= CHUNK_SIZE:
+                    df = pd.DataFrame(rows, columns=["job_hash", "skill_name"])
+                    con.register("job_skills_batch", df)
+                    con.execute("""
+                        INSERT INTO silver.job_skills
+                        SELECT DISTINCT job_hash, skill_name
+                        FROM job_skills_batch
+                    """)
+                    con.unregister("job_skills_batch")
+                    logger.info(f"Inserted {len(df)} items into silver.job_skills")
+                    rows = []
+
+            except Exception as e:
+                logger.warning(f"Skill extraction failed for job_hash={job_hash}")
+                continue
+
+        if rows:
+            df = pd.DataFrame(rows, columns=["job_hash", "skill_name"])
+            con.register("job_skills_batch", df)
+            con.execute("""
+                INSERT INTO silver.job_skills
+                SELECT DISTINCT job_hash, skill_name
+                FROM job_skills_batch
+            """)
+            con.unregister("job_skills_batch")
+            logger.info(f"Inserted {len(df)} items into silver.job_skills")
+
+        elapsed = time.perf_counter() - start_time
+        logger.info(f"Processed {len(jobs)} jobs in {elapsed/60:.2f} minutes.")
