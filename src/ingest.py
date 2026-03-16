@@ -3,7 +3,7 @@ import re
 import argparse
 import logging
 from dotenv import load_dotenv
-from init_warehouse import init_warehouse
+from init_warehouse import init_bronze
 from ingestion import statcan_ingestor
 from ingestion import adzuna_ingestor
 
@@ -26,8 +26,8 @@ def ingest_statcan(mode="build", table_id="all"):
     if table_id == "all":
         for tid, (t_name, source_cfg) in STATCAN_CONFIG.items():
             statcan_ingestor.ingest(
-                cfg_path=f"../config/data_sources/{source_cfg}", 
-                table_name=t_name, 
+                cfg_path=f"../config/data_sources/{source_cfg}",
+                table_name=t_name,
                 mode=mode
             )
     else:
@@ -35,54 +35,64 @@ def ingest_statcan(mode="build", table_id="all"):
         if config_entry:
             t_name, source_cfg = config_entry
             statcan_ingestor.ingest(
-                cfg_path=f"../config/data_sources/{source_cfg}", 
-                table_name=t_name, 
+                cfg_path=f"../config/data_sources/{source_cfg}",
+                table_name=t_name,
                 mode=mode
             )
         else:
-            logger.error(f"Could not find configuration file for Table ID: {table_id}")       
+            logger.error(f"Could not find configuration file for Table ID: {table_id}")
 
-def main(mode="build", source="all"):
+def main(mode="build", source="all", days_back=90):
     # 1. Validation
-    if not re.match(r"all|adzuna|\d{8}", source):
-        logger.error(f"Invalid value for source: {source}. Use 'all', 'adzuna', or an 8-digit Table ID.")
+    if not re.fullmatch(r"(all|adzuna|adzuna_desc|\d{8})", source):
+        logger.error(
+            f"Invalid value for source: {source}. "
+            "Use 'all', 'adzuna', 'adzuna_desc', or an 8-digit StatCan Table ID."
+        )
         return
 
     # 2. Environment & Database Prep
     load_dotenv()
     if not os.path.exists(DB_PATH):
         logger.info("Database not found. Initializing warehouse...")
-        init_warehouse(db_path=DB_PATH)
+        init_bronze(db_path=DB_PATH)
 
     # 3. StatCan Routing
-    # If source is 'all' or an 8-digit number, we handle StatCan
     if source == "all" or source.isdigit():
         table_param = "all" if source == "all" else source
         ingest_statcan(mode=mode, table_id=table_param)
 
-    # 4. Adzuna Routing
+    # 4. Adzuna postings routing
     if source == "all" or source == "adzuna":
         logger.info("Starting ingestion for Adzuna Job Postings...")
-        adzuna_ingestor.ingest(mode=mode)
+        adzuna_ingestor.ingest_jobs(mode=mode)
+
+    # 5. Adzuna descriptions routing
+    if source == "all" or source == "adzuna_desc":
+        logger.info("Starting ingestion for Adzuna Job Descriptions...")
+        adzuna_ingestor.ingest_descriptions(mode=mode, days_back=days_back)
 
     logger.info("Pipeline execution complete.")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="SkillPath-Engine Bronze Ingestion Pipeline") 
-    # --source flag (default: all)
+    parser = argparse.ArgumentParser(description="SkillPath-Engine Bronze Ingestion Pipeline")
     parser.add_argument(
-        "--source", 
-        type=str, 
-        default="all", 
-        help="Source to ingest: 'all', 'adzuna', or specific 8-digit StatCan Table ID."
+        "--source",
+        type=str,
+        default="all",
+        help="Source to ingest: 'all', 'adzuna', 'adzuna_desc', or specific 8-digit StatCan Table ID."
     )
-    # --update flag (toggle mode to update)
     parser.add_argument(
-        "--update", 
-        action="store_true", 
+        "--update",
+        action="store_true",
         help="Run in update mode (append data) instead of build mode (overwrite)."
     )
+    parser.add_argument(
+        "--days_back",
+        type=int,
+        default=90,
+        help="How many days of postings to scrape descriptions for (default: 90)."
+    )
     args = parser.parse_args()
-    # Determine mode based on flag
     run_mode = "update" if args.update else "build"
-    main(mode=run_mode, source=args.source)
+    main(mode=run_mode, source=args.source, days_back=args.days_back)

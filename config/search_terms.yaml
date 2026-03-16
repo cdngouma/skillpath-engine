@@ -1,0 +1,86 @@
+search_terms:
+
+  # 21211 — Data Science / AI / ML
+  "21211":
+    - "data scientist"
+    - "machine learning"
+    - "ml engineer"
+    - "mlops ai"
+    - "genai llm"
+
+  # 21220 — Cybersecurity
+  "21220":
+    - "cybersecurity"
+    - "security engineer"
+    - "security analyst"
+    - "penetration testing"
+    - "soc analyst"
+    - "cloud security"
+
+  # 21221 — Business Systems
+  "21221":
+    - "business systems analyst"
+    - "business analyst erp"
+    - "erp consultant"
+
+  # 21222 — Information Systems / Architecture
+  "21222":
+    - "solutions architect"
+    - "enterprise architect"
+    - "network engineer"
+    - "systems analyst"
+
+  # 21223 — Database / Data Administration / BI
+  "21223":
+    - "database administrator"
+    - "database engineer"
+    - "data architect"
+    - "etl developer"
+    - "data engineer"
+    - "analytics engineer"
+    - "bi developer"
+    - "data analyst"
+
+  # 21230 — Systems Programming / Embedded
+  "21230":
+    - "systems programmer"
+    - "embedded software"
+    - "firmware engineer"
+    - "kernel developer"
+
+  # 21231 — Software Engineering / Cloud / Platform
+  "21231":
+    - "software engineer"
+    - "cloud engineer"
+    - "cloud architect"
+    - "platform engineer"
+    - "site reliability"
+    - "devops engineer"
+    - "devops engineer"
+
+  # 21232 — Software Development / Backend / Full-Stack
+  "21232":
+    - "software developer"
+    - "backend developer"
+    - "full stack"
+    - "java developer"
+    - "c# developer"
+    - "python developer"
+    - ".net developer"
+    - "api developer"
+
+  # 21233 — Web Design / UI / UX
+  "21233":
+    - "web designer"
+    - "ui designer"
+    - "ux designer"
+    - "product designer"
+
+  # 21234 — Web Development / Frontend
+  "21234":
+    - "web developer"
+    - "frontend developer"
+    - "react developer"
+    - "javascript developer"
+    - "angular developer"
+    - "nodejs developer"
