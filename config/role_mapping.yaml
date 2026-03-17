@@ -1,109 +1,389 @@
 role_mapping:
-  # 21211: Data Science (Advanced analytics, ML, and Data Engineering)
+
+  # 21211 — Data Science / AI / Advanced Analytics
+  # Focus: statistical modeling, machine learning, predictive analytics,
+  # and extracting insights from structured or unstructured data.
   "21211":
-    - "Data Scientist"
-    - "Machine Learning Engineer"
-    - "ML Developer"
-    - "ML Engineer"
-    - "MLOps Engineer"
-    - "AI Developer"
-    - "GenAI Developer"
-    - "Data Engineer"
-    - "Big Data Engineer"
-    - "ML Researcher"
-    - "AI Researcher"
-    - "Quantitative Analyst"
 
-  # 21220: Cybersecurity (Security measures and network protection)
+    "Data Scientist":
+      - "Data Scientist"
+      - "Senior Data Scientist"
+      - "Lead Data Scientist"
+      - "Applied Scientist"
+      - "Research Scientist"
+      - "ML Researcher"
+      - "Machine Learning Scientist"
+      - "Quantitative Analyst"
+      - "Decision Scientist"
+
+    "AI/ML Developer":
+      - "AI Engineer"
+      - "AI Developer"
+      - "ML Engineer"
+      - "Machine Learning Engineer"
+      - "Machine Learning Developer"
+      - "Machine Learning Software Engineer"
+      - "MLOps Engineer"
+      - "AI/ML Engineer"
+      - "GenAI Developer"
+      - "GenAI Engineer"
+      - "Generative AI Engineer"
+      - "Generative AI Developer"
+      - "LLM Engineer"
+      - "Prompt Engineer"
+      - "Applied ML Engineer"
+
+    "Data Analyst":
+      - "Data Analyst"
+      - "Analytics Analyst"
+      - "Reporting Analyst"
+      - "Product Analyst"
+      - "Marketing Analyst"
+      - "Business Data Analyst"
+      - "Research Analyst"
+      - "Operations Analyst"
+      - "Risk Analyst"
+      - "GIS Analyst"
+
+  # 21220 — Cybersecurity
+  # Focus: protecting networks, systems, and data from cyber threats,
+  # including architecture, monitoring, and vulnerability testing.
   "21220":
-    - "Cybersecurity Specialist"
-    - "Security Engineer"
-    - "Security Architect"
-    - "Information Security Analyst"
-    - "Penetration Tester"
-    - "SOC Analyst"
 
-  # 21221: Business Systems (Strategy-to-IT translation and architecture)
+    "Cybersecurity Specialist":
+      - "Cybersecurity Specialist"
+      - "Cyber Security Specialist"
+      - "Information Security Specialist"
+      - "Information Security Analyst"
+      - "Cybersecurity Consultant"
+      - "Cyber Security Consultant"
+      - "IAM Specialist"
+      - "Identity and Access Management Specialist"
+
+    "Security Engineer":
+      - "Security Engineer"
+      - "Cybersecurity Engineer"
+      - "Cyber Security Engineer"
+      - "Application Security Engineer"
+      - "Cloud Security Engineer"
+      - "Network Security Engineer"
+      - "Firewall Engineer"
+      - "Detection Engineer"
+      - "Security Automation Engineer"
+
+    "Security Architect":
+      - "Security Architect"
+      - "Cybersecurity Architect"
+      - "Cyber Security Architect"
+      - "Cloud Security Architect"
+      - "IAM Architect"
+      - "Identity and Access Management Architect"
+
+    "Security Analyst":
+      - "Security Analyst"
+      - "Cybersecurity Analyst"
+      - "Cyber Security Analyst"
+      - "Threat Analyst"
+      - "Vulnerability Analyst"
+      - "Blue Team Analyst"
+      - "Incident Response Analyst"
+
+    "SOC Analyst":
+      - "SOC Analyst"
+      - "Security Operations Analyst"
+      - "Security Operations Center Analyst"
+      - "Penetration Tester"
+      - "Pen Tester"
+      - "Red Team Analyst"
+      - "Ethical Hacker"
+
+  # 21221 — Business Systems
+  # Focus: translating business processes and strategic objectives into
+  # IT requirements, enterprise systems, and technology solutions.
   "21221":
-    - "Business Systems Analyst"
-    - "IT Business Analyst"
-    - "ERP Consultant"
-    - "Systems Strategist"
-    - "Business Architect"
-    - "Business Intelligence Analyst"
 
-  # 21222: Information Systems (Systems requirements and connectivity)
+    "Business Systems Analyst":
+      - "Business Systems Analyst"
+      - "Business Analyst"
+      - "Systems Business Analyst"
+      - "Business Process Analyst"
+      - "Functional Analyst"
+      - "Functional Consultant"
+
+    "IT Business Analyst":
+      - "IT Business Analyst"
+      - "Technical Business Analyst"
+      - "Technology Business Analyst"
+      - "Business Technology Analyst"
+      - "Digital Business Analyst"
+
+    "ERP Consultant":
+      - "ERP Consultant"
+      - "ERP Analyst"
+      - "ERP Business Analyst"
+      - "SAP Consultant"
+      - "SAP Analyst"
+      - "Oracle ERP Consultant"
+      - "Dynamics Consultant"
+
+  # 21222 — Information Systems / Architecture
+  # Focus: systems design, networking, and enterprise architecture
+  # for large-scale information systems and IT environments.
   "21222":
-    - "Network Analyst"
-    - "Network Engineer"
-    - "Information Systems Specialist"
-    - "Systems Consultant"
-    - "Technical Architect"
-    - "Solutions Architect"
-    - "Enterprise Architect"
-    - "Software QA Analyst"
-    - "QA Engineer"
-    - "Software Tester"
-    - "Technical Project Manager"
-    - "IT Analyst"
-    - "Systems Consultant"
 
-  # 21223: Database & Data Admin (Data management and solutions)
+    "Network Engineer":
+      - "Network Engineer"
+      - "Network Analyst"
+      - "Network Specialist"
+      - "Infrastructure Engineer"
+      - "Infrastructure Analyst"
+      - "Systems Engineer"
+
+    "Systems Analyst":
+      - "Systems Analyst"
+      - "Information Systems Analyst"
+      - "IT Systems Analyst"
+      - "Systems Consultant"
+      - "IT Systems Specialist"
+      - "Information Systems Specialist"
+      - "Technical Analyst"
+
+    "Solutions Architect":
+      - "Solutions Architect"
+      - "Solution Architect"
+      - "Enterprise Solutions Architect"
+      - "Solution Designer"
+
+    "Technical Architect":
+      - "Technical Architect"
+      - "Enterprise Architect"
+      - "Information Systems Architect"
+      - "Systems Architect"
+      - "Application Architect"
+
+    "Solutions Engineer":
+      - "Sales Engineer"
+      - "Solutions Engineer"
+
+  # 21223 — Database & Data Administration
+  # Focus: database systems, data storage architecture,
+  # ETL processes, and data management infrastructure.
   "21223":
-    - "Data Analyst"
-    - "Business Intelligence Developer"
-    - "BI Developer"
-    - "Data Analytics Specialist"
-    - "Database Architect"
-    - "Database Administrator"
-    - "Database Engineer"
-    - "DBA"
-    - "Data Architect"
-    - "ETL Developer"
-    - "Data Warehouse Analyst"
 
-  # 21230: Systems Programming (Operating systems and communications code)
+    "Database Administrator":
+      - "Database Administrator"
+      - "DBA"
+      - "SQL DBA"
+      - "Oracle DBA"
+      - "PostgreSQL DBA"
+      - "Database Admin"
+
+    "Database Engineer":
+      - "Database Engineer"
+      - "Data Platform Engineer"
+      - "Data Warehouse Engineer"
+      - "Data Warehouse Developer"
+      - "Analytics Engineer"
+      - "BI Engineer"
+
+    "Data Architect":
+      - "Data Architect"
+      - "Enterprise Data Architect"
+      - "Information Architect"
+      - "Data Modeler"
+      - "Data Modeller"
+
+    "ETL Developer":
+      - "ETL Developer"
+      - "ETL Engineer"
+      - "Data Integration Developer"
+      - "Data Integration Engineer"
+      - "ELT Developer"
+      - "Data Pipeline Developer"
+
+    "BI Developer":
+      - "BI Developer"
+      - "Business Analyst"
+      - "Business Intelligence Developer"
+      - "BI Analyst"
+      - "Business Intelligence Analyst"
+      - "Reporting Developer"
+      - "Report Developer"
+      - "Power BI Developer"
+      - "Tableau Developer"
+
+  # 21230 — Systems Programming / Embedded Systems
+  # Focus: low-level programming for operating systems,
+  # firmware, embedded systems, and hardware-level software.
   "21230":
-    - "Systems Programmer"
-    - "Embedded Software Engineer"
-    - "C++ Developer"
-    - "Kernel Developer"
-    - "Firmware Engineer"
-    - "Mainframe Developer"
 
-  # 21231: Software Engineering (Technical environments and infrastructure)
+    "Systems Programmer":
+      - "Compiler Engineer"
+      - "Systems Programmer"
+      - "System Programmer"
+      - "Kernel Developer"
+      - "Kernel Engineer"
+      - "Low-Level Software Engineer"
+      - "Systems Software Engineer"
+      - "Systems Developer"
+
+    "Embedded Software Engineer":
+      - "Embedded Software Engineer"
+      - "Embedded Engineer"
+      - "Embedded Systems Engineer"
+      - "Embedded Developer"
+      - "Real-Time Software Engineer"
+      - "RTOS Engineer"
+
+    "Firmware Engineer":
+      - "Firmware Engineer"
+      - "Firmware Developer"
+      - "Device Software Engineer"
+      - "C/C++ Embedded Engineer"
+
+  # 21231 — Software Engineering / Cloud / Platform Infrastructure
+  # Focus: engineering scalable software systems, cloud platforms,
+  # distributed infrastructure, DevOps, and reliability engineering.
   "21231":
-    - "Software Engineer"
-    - "DevOps Engineer"
-    - "Cloud Engineer"
-    - "Site Reliability Engineer"
-    - "Infrastructure Engineer"
-    - "Platform Engineer"
 
-  # 21232: Software Development (Code efficiency and effectiveness)
+    "Software Engineer":
+      - "Software Engineer"
+      - "Application Engineer"
+      - "Staff Software Engineer"
+      - "Principal Software Engineer"
+      - "Member of Technical Staff"
+      - "Systems Software Engineer"
+
+    "Platform Engineer":
+      - "Platform Engineer"
+      - "Infrastructure Engineer"
+      - "Build Engineer"
+      - "Release Engineer"
+      - "Production Engineer"
+
+    "Cloud Engineer":
+      - "Cloud Developer"
+      - "Cloud Engineer"
+      - "Cloud Architect"
+      - "Cloud Infrastructure Engineer"
+      - "Cloud Platform Engineer"
+      - "AWS Engineer"
+      - "Azure Engineer"
+      - "GCP Engineer"
+      - "Google Cloud Platform Engineer"
+
+    "Site Reliability Engineer":
+      - "Site Reliability Engineer"
+      - "SRE"
+      - "Reliability Engineer"
+      - "Production Reliability Engineer"
+
+    "Data Engineer":
+      - "Data Engineer"
+      - "Big Data Engineer"
+      - "Data Platform Engineer"
+      - "Data Infrastructure Engineer"
+      - "Streaming Data Engineer"
+
+    "DevOps Engineer":
+      - "DevOps Engineer"
+      - "DevOps Specialist"
+      - "DevSecOps Engineer"
+      - "CI/CD Engineer"
+      - "Automation Engineer"
+      - "Build and Release Engineer"
+
+  # 21232 — Software Development / Application Development
+  # Focus: designing and implementing application-level software
+  # such as backend services, APIs, and full-stack applications.
   "21232":
-    - "Software Developer"
-    - "Full Stack Developer"
-    - "Full Stack Engineer"
-    - "Backend Developer"
-    - "Python Developer"
-    - "Java Developer"
-    - "C# Developer"
 
-  # 21233: Web Design (Visual presentation and layout)
+    "Software Developer":
+      - "Software Developer"
+      - "Application Developer"
+      - "Application Engineer"
+      - "Programmer Analyst"
+      - "Programmer"
+      - "Salesforce Developer"
+
+    "Backend Developer":
+      - "Backend Developer"
+      - "Back-End Developer"
+      - "Backend Engineer"
+      - "Back-End Engineer"
+      - "API Developer"
+      - "Java Developer"
+      - "Python Developer"
+      - "C# Developer"
+      - ".NET Developer"
+      - "Node.js Developer"
+      - "NodeJS Developer"
+      - "Golang Developer"
+      - "PHP Developer"
+
+    "Full-Stack Developer":
+      - "Full-Stack Developer"
+      - "Full Stack Developer"
+      - "Full-Stack Engineer"
+      - "Full Stack Engineer"
+      - "Software Developer Full Stack"
+      - "Application Developer Full Stack"
+
+    "Mobile Developer":
+      - "Mobile Developer"
+      - "Mobile Engineer"
+      - "iOS Developer"
+      - "iOS Engineer"
+      - "Android Developer"
+      - "Android Engineer"
+      - "React Native Developer"
+      - "React Native Engineer"
+      - "Flutter Developer"
+      - "Flutter Engineer"
+      - "Mobile Application Developer"
+
+  # 21233 — Web Design / UI / UX
+  # Focus: visual layout, user interfaces, and user experience
+  # design for digital products and web applications.
   "21233":
-    - "Web Designer"
-    - "UI Designer"
-    - "UX Designer"
-    - "User Experience Researcher"
-    - "UI/UX Specialist"
 
-  # 21234: Web Development (Functionality and website capacity)
+    "Web Designer":
+      - "Web Designer"
+      - "Digital Designer"
+      - "Visual Designer"
+      - "Interaction Designer"
+
+    "UI/UX Designer":
+      - "UI Designer"
+      - "User Interface Designer"
+      - "Product Designer"
+      - "Interface Designer"
+      - "UX Designer"
+      - "User Experience Designer"
+      - "UX Researcher"
+      - "User Researcher"
+      - "UX/UI Designer"
+      - "UI/UX Designer"
+
+  # 21234 — Web Development / Frontend Engineering
+  # Focus: building client-side web applications and interactive
+  # browser interfaces using web technologies.
   "21234":
-    - "Web Developer"
-    - "Frontend Developer"
-    - "Frontend Engineer"
-    - "React Developer"
-    - "JavaScript Developer"
-    - "WordPress Developer"
-    
+
+    "Web Developer":
+      - "Web Developer"
+      - "Website Developer"
+      - "Web Application Developer"
+      - "Web Engineer"
+      - "WordPress Developer"
+
+    "Frontend Developer":
+      - "Frontend Developer"
+      - "Front-End Developer"
+      - "Frontend Engineer"
+      - "Front-End Engineer"
+      - "React Developer"
+      - "Angular Developer"
+      - "Vue Developer"
+      - "JavaScript Developer"
+      - "TypeScript Developer"

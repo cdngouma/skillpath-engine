@@ -1,196 +1,492 @@
 import re
 import unicodedata
+import logging
 from functools import partial
+
 import pandas as pd
 import torch
+import yaml
 from sentence_transformers import SentenceTransformer, util
-from noc_mapping import get_noc_lookup
-import logging
 
 logger = logging.getLogger(__name__)
 
-# ---- Utilities functions ----
+# ---------------------------------------------------------------------
+# Config / Regex
+# ---------------------------------------------------------------------
 
-def _strip_accents(s: str) -> str:
-    return "".join(
-        c for c in unicodedata.normalize("NFKD", s)
-        if not unicodedata.combining(c)
-    )
-
-def _normalize_separators(s: str) -> str:
-    s = s.replace("–", "-").replace("—", "-")
-    s = re.sub(r"[|•·]", " ", s)
-    s = re.sub(r"[\t\r\n]+", " ", s)
-    return s
-
-def _collapse_spaces(s: str) -> str:
-    return " ".join(s.split()).strip()
-
-# ---- Config & Regex Compilation ----
-
-# Seniority/Level noise
-SENIORITY_RE = re.compile(r"\b(staff|senior|sr\.?|jr\.?|junior|intermediate|lead|principal|internship|intern)\b", re.I)
-
-# Geographical/Format noise
-CONTEXT_NOISE_RE = re.compile(
-    r"\b(hybrid|remote|on[-\s]?site|canada|montreal|montréal|toronto|ottawa|vancouver|us|usa)\b",
+LEADERSHIP_RE = re.compile(
+    r"\b("
+    r"director|directeur|head|vp|vice president|chief|president|"
+    r"manager|gestionnaire"
+    r")\b",
     re.I,
 )
 
-# Language stop words
-STOPWORDS_RE = re.compile(r"\b(and|or|for|with|in|at|of|the|on|et|pour|dans|avec|sur|de|la|le|des|du)\b", re.I)
+SENIORITY_RE = re.compile(
+    r"\b("
+    r"senior|sr\.?|junior|jr\.?|associate|staff|principal|lead|"
+    r"intermediate|entry[-\s]?level|intern|stagiaire|student"
+    r")\b",
+    re.I,
+)
 
-# Corporate role fluff
-ROLE_FLUFF_RE = re.compile(r"\b(associate|consultant|specialist|specialiste|expert|solutions?)\b", re.I)
+CONTEXT_NOISE_RE = re.compile(
+    r"\b("
+    r"remote|hybrid|on[-\s]?site|contract|permanent|temporary|full[-\s]?time|"
+    r"part[-\s]?time|montreal|montr[eé]al|toronto|ottawa|vancouver|canada|usa|us"
+    r")\b",
+    re.I,
+)
 
+STOPWORDS_RE = re.compile(
+    r"\b("
+    r"and|or|for|with|in|at|of|the|on|to|et|ou|pour|avec|dans|sur|"
+    r"de|la|le|les|des|du|d[eu]|&"
+    r")\b",
+    re.I,
+)
+
+SEGMENT_SPLIT_RE = re.compile(r"\s*(?:,|\||:|;| / | -|- |\(|\))\s*")
+
+# Translation / normalization rules applied before segmentation logic
 NORMALIZATION_RULES = [
-    (re.compile(r"\b(aws|azure|gcp|google cloud|infrastructure)\b", re.I), "cloud"),
-    (re.compile(r"\bplatform\s+engineer\b", re.I), "cloud engineer"),
+    # French -> English
+    (re.compile(r"\bd[eé]veloppeur(?:\.?euse)?\b", re.I), "developer"),
+    (re.compile(r"\bing[eé]nieur(?:\.?e)?\b", re.I), "engineer"),
     (re.compile(r"\bscientifique\b", re.I), "scientist"),
-    (re.compile(r"\bdeveloppeur(\.se)?\s+logiciel\b", re.I), "software developer"),
-    (re.compile(r"\bingenieur(\·?\.?e)?\s+logiciel\b", re.I), "software engineer"),
-    (re.compile(r"\bdeveloppement\b", re.I), "developer"),
-    (re.compile(r"\bfull[-\s]?stack\b", re.I), "full stack"),
+    (re.compile(r"\barchitecte\b", re.I), "architect"),
+    (re.compile(r"\banalyste\b", re.I), "analyst"),
+    (re.compile(r"\br[eé]seau\b", re.I), "network"),
+    (re.compile(r"\bs[eé]curit[eé]\b", re.I), "security"),
+    # Term normalization
+    (re.compile(r"\bfull[-\s]?stack\b", re.I), "full-stack"),
     (re.compile(r"\bfront[-\s]?end\b", re.I), "frontend"),
     (re.compile(r"\bback[-\s]?end\b", re.I), "backend"),
-    (re.compile(r"\bui\s*/\s*ux\b", re.I), "ui/ux"),
-    (re.compile(r"\bengineer(ing)?\b", re.I), "engineer"),
-    (re.compile(r"\bdevelop(ment|er)?\b", re.I), "developer"),
-    (re.compile(r"\betl\b", re.I), "data"),
+    (re.compile(r"\bnodejs\b", re.I), "node.js"),
+    (re.compile(r"\bdotnet\b", re.I), ".net"),
+    (re.compile(r"\bui\s*/\s*ux\b", re.I), "ux ui"),
+    (re.compile(r"\bux\s*/\s*ui\b", re.I), "ux ui"),
+    (re.compile(r"\bdeep learning\b", re.I), "machine learning"),
+    (re.compile(r"\bcyber security\b", re.I), "cybersecurity"),
+    # Morphology normalization
+    (re.compile(r"\bengineering\b", re.I), "engineer"),
+    (re.compile(r"\bdevelopment\b", re.I), "developer"),
+    (re.compile(r"\bprogramming\b", re.I), "programmer"),
 ]
 
-PROTECTED_PHRASES = [
-    "machine learning", "genai", "ml", "ai", "data", "cloud", "devops", 
-    "sre", "cybersecurity", "salesforce", "sap", "aws", "azure", "gcp", 
-    "ui/ux", "frontend", "backend", "full stack", "bi"
+# Protected tokens / concepts to preserve from later title segments
+PROTECTED_TERMS = {
+    "ai",
+    "ml",
+    "ai/ml",
+    "machine learning",
+    "genai",
+    "generative ai",
+    "llm",
+    "data",
+    "analytics",
+    "full-stack",
+    "frontend",
+    "backend",
+    "security",
+    "cybersecurity",
+    "cloud",
+    "platform",
+    "devops",
+    "site reliability",
+    "sre",
+    "database",
+    "etl",
+    "bi",
+    "ux",
+    "ui",
+    "web",
+    "firmware",
+    "embedded",
+    "network",
+    "erp",
+    "salesforce",
+    "software",
+    "developer"
+}
+
+PROTECTED_REGEXES = [
+    (term, re.compile(rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])", re.I))
+    for term in sorted(PROTECTED_TERMS, key=len, reverse=True)
 ]
 
-PROTECTED_CANONICAL = {"machine learning": "ml"}
+# Optional synonym collapsing before semantic match
+CANONICAL_TERM_RULES = [
+    (re.compile(r"\b(machine learning|mlops|ml)\b", re.I), "ml"),
+    (re.compile(r"\b(generative ai|genai|llm|artificial intelligence|ai)\b", re.I), "ai"),
+    (re.compile(r"\b(site reliability|sre)\b", re.I), "site reliability"),
+]
 
-def _compile_protected_regexes(protected_phrases):
-    protected_phrases = sorted(set(p.lower() for p in protected_phrases), key=len, reverse=True)
-    compiled = []
-    for p in protected_phrases:
-        patt = r"(?<![a-z0-9])" + re.escape(p) + r"(?![a-z0-9])"
-        compiled.append((p, re.compile(patt, re.I)))
-    return compiled
+# ---------------------------------------------------------------------
+# Utilities
+# ---------------------------------------------------------------------
 
-PROTECTED_REGEXES = _compile_protected_regexes(PROTECTED_PHRASES)
-SEGMENT_SPLIT_RE = re.compile(r"\s*(?:,| - |–|\||:|;)\s*", re.I)
 
-def _smart_clean_title(raw_text):
-    if not raw_text: return ""
-    text = str(raw_text).lower()
+def _strip_accents(text: str) -> str:
+    return "".join(
+        c for c in unicodedata.normalize("NFKD", text)
+        if not unicodedata.combining(c)
+    )
+
+
+def _collapse_spaces(text: str) -> str:
+    return " ".join(text.split()).strip()
+
+
+def _normalize_text(text: str) -> str:
+    if not text:
+        return ""
+
+    text = str(text).lower()
     text = _strip_accents(text)
-    text = _normalize_separators(text)
+    text = text.replace("–", "-").replace("—", "-")
+    text = re.sub(r"[\t\r\n]+", " ", text)
+    text = re.sub(r"[•·]", " ", text)
 
     for rx, repl in NORMALIZATION_RULES:
         text = rx.sub(repl, text)
 
-    text = SENIORITY_RE.sub(" ", text)
-    text = CONTEXT_NOISE_RE.sub(" ", text)
-    text = ROLE_FLUFF_RE.sub(" ", text)
-    text = STOPWORDS_RE.sub(" ", text)
-    text = text.replace("(", " ").replace(")", " ")
-    text = re.sub(r"[^a-z/,\-|:; ]+", " ", text)
-
     return _collapse_spaces(text)
 
-def _extract_protected_terms(text):
-    if not text: return []
-    found, used_spans = [], []
-    for phrase, rx in PROTECTED_REGEXES:
-        for m in rx.finditer(text):
-            span = m.span()
+
+def _apply_canonical_term_rules(text: str) -> str:
+    for rx, repl in CANONICAL_TERM_RULES:
+        text = rx.sub(repl, text)
+    return _collapse_spaces(text)
+
+
+def _extract_protected_terms(text: str) -> list[str]:
+    if not text:
+        return []
+
+    found = []
+    used_spans = []
+
+    for term, rx in PROTECTED_REGEXES:
+        for match in rx.finditer(text):
+            span = match.span()
             if any(not (span[1] <= s[0] or span[0] >= s[1]) for s in used_spans):
                 continue
             used_spans.append(span)
-            found.append(PROTECTED_CANONICAL.get(phrase, phrase))
-    
-    seen, out = set(), []
-    for t in found:
-        if t not in seen:
-            out.append(t); seen.add(t)
+            found.append(term)
+
+    out = []
+    seen = set()
+    for term in found:
+        if term not in seen:
+            seen.add(term)
+            out.append(term)
     return out
 
-def _find_anchor(clean_title, unique_terms):
-    if not clean_title: return None
-    t = clean_title.lower()
-    for term in sorted(unique_terms, key=len, reverse=True):
-        patt = r"\b" + re.escape(term.lower()) + r"\b"
-        if re.search(patt, t):
-            return term.lower()
-    return None
 
-def _build_semantic_title(clean_title, anchor):
-    if not clean_title: return ""
-    if anchor: return anchor  # RULE: Anchor exists? Use it alone.
+def _preprocess_title(raw_title: str) -> tuple[str, bool]:
+    """
+    Returns:
+        cleaned_title, is_excluded
+    """
+    if not raw_title:
+        return "", False
+
+    text = _normalize_text(raw_title)
+
+    if LEADERSHIP_RE.search(text):
+        return text, True
+
+    text = SENIORITY_RE.sub(" ", text)
+    text = CONTEXT_NOISE_RE.sub(" ", text)
+
+    # keep common technical punctuation before stopword stripping
+    text = re.sub(r"[{}\[\]]", " ", text)
+    text = STOPWORDS_RE.sub(" ", text)
+
+    # keep letters, numbers, slash, dot, plus, hash, hyphen, separators for segmentation
+    text = re.sub(r"[^a-z0-9/+.&#,\-|:;() ]+", " ", text)
+    text = _collapse_spaces(text)
+
+    return text, False
+
+
+def _reduce_title_segments(clean_title: str) -> str:
+    """
+    Keep first segment always.
+    For later segments, keep only protected terms if present.
+    """
+    if not clean_title:
+        return ""
 
     parts = [p.strip() for p in SEGMENT_SPLIT_RE.split(clean_title) if p and p.strip()]
-    if not parts: return ""
+    if not parts:
+        return ""
 
     base = parts[0]
-    modifiers = []
-    for p in parts[1:]:
-        modifiers.extend(_extract_protected_terms(p))
+    extras = []
 
-    return _collapse_spaces(base + " " + " ".join(modifiers))
+    for part in parts[1:]:
+        protected = _extract_protected_terms(part)
+        extras.extend(protected)
 
-def _get_semantic_match(row, model, unique_terms, term_embeddings, noc_lookup):
-    original_title = str(row["job_title"])
-    clean_title = _smart_clean_title(original_title)
+    extras = list(dict.fromkeys(extras))  # preserve order, dedupe
+    reduced = base if not extras else f"{base} {' '.join(extras)}"
+    reduced = _apply_canonical_term_rules(reduced)
+    return _collapse_spaces(reduced)
 
-    anchor = _find_anchor(clean_title, unique_terms)
-    synthetic_title = _build_semantic_title(clean_title, anchor)
 
-    if anchor and anchor in unique_terms:
-        best_term = anchor
-        max_score = 1.0
-        method = "Anchor"
-    else:
-        title_embedding = model.encode(synthetic_title, convert_to_tensor=True, show_progress_bar=False)
-        cosine_scores = util.cos_sim(title_embedding, term_embeddings)[0]
-        best_idx = int(torch.argmax(cosine_scores).item())
-        max_score = float(cosine_scores[best_idx].item())
-        best_term = unique_terms[best_idx]
-        method = "Semantic"
+# ---------------------------------------------------------------------
+# Taxonomy loading
+# ---------------------------------------------------------------------
 
-    # We return everything here, but map_roles will decide what to keep
-    return pd.Series({
-        "clean_title": clean_title,
-        "matched_label": best_term,
-        "confidence_score": round(max_score * 100, 2),
-        "matched_noc": noc_lookup.get(best_term),
-        "match_method": method
-    })
 
-def map_roles(df, yaml_path, full_report=False):
+def _load_role_taxonomy(yaml_path: str):
     """
-    Main entry point for NOC classification.
-    If full_report=True, returns all diagnostic columns.
-    If full_report=False, returns only assigned_noc and confidence_score.
+    Expected YAML shape:
+
+    role_mapping:
+      "21211":
+        "Data Scientist":
+          - "Data Scientist"
+          - "Applied Scientist"
+        "AI/ML Developer":
+          - "AI Engineer"
+          - "ML Engineer"
     """
-    noc_lookup = get_noc_lookup(yaml_path)
+    with open(yaml_path, "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f)
+
+    role_mapping = cfg["role_mapping"]
+
+    variant_to_role: dict[str, str] = {}
+    role_to_noc: dict[str, str] = {}
+    variants: list[str] = []
+
+    for noc_code, roles in role_mapping.items():
+        for role_name, role_variants in roles.items():
+            role_to_noc[role_name] = noc_code
+
+            # also allow canonical role name itself as a match target
+            canonical_role_key = role_name.lower()
+            variant_to_role[canonical_role_key] = role_name
+            variants.append(role_name)
+
+            for variant in role_variants:
+                key = variant.lower()
+                variant_to_role[key] = role_name
+                variants.append(variant)
+
+    # dedupe while preserving first occurrence
+    variants = list(dict.fromkeys(variants))
+
+    return variant_to_role, role_to_noc, variants
+
+
+# ---------------------------------------------------------------------
+# Matching
+# ---------------------------------------------------------------------
+
+
+def _exact_match(clean_title: str, variant_to_role: dict[str, str]):
+    text = clean_title.lower().strip()
     
-    logger.info("Initializing Semantic Model...")
-    model = SentenceTransformer("all-MiniLM-L6-v2")
+    for variant in variant_to_role.keys():
+        pattern = r"\b" + re.escape(variant.lower().strip()) + r"\b"
+        if re.search(pattern, text):
+            role = variant_to_role[variant]
+            return {
+                "matched_variant": variant,
+                "matched_role": role,
+                "match_method": "Exact",
+                "confidence_score": 100.0
+            }
+    return None
 
-    unique_terms = list(noc_lookup.keys())
-    term_embeddings = model.encode(unique_terms, convert_to_tensor=True, show_progress_bar=False)
 
-    match_func = partial(
-        _get_semantic_match,
+def _semantic_match(
+    clean_title: str,
+    model,
+    variant_texts: list[str],
+    variant_embeddings,
+    variant_to_role: dict[str, str],
+):
+    if not clean_title:
+        return {
+            "matched_variant": None,
+            "matched_role": None,
+            "match_method": "None",
+            "confidence_score": 0.0,
+        }
+
+    title_embedding = model.encode(
+        clean_title,
+        convert_to_tensor=True,
+        show_progress_bar=False,
+    )
+    cosine_scores = util.cos_sim(title_embedding, variant_embeddings)[0]
+    best_idx = int(torch.argmax(cosine_scores).item())
+    score = float(cosine_scores[best_idx].item())
+    matched_variant = variant_texts[best_idx]
+    matched_role = variant_to_role.get(matched_variant.lower())
+
+    return {
+        "matched_variant": matched_variant,
+        "matched_role": matched_role,
+        "match_method": "Semantic",
+        "confidence_score": round(score * 100, 2),
+    }
+
+
+def _map_row(
+    row,
+    model,
+    variant_texts,
+    variant_embeddings,
+    variant_to_role,
+    role_to_noc,
+    min_confidence=None,
+):
+    original_title = str(row["title"]) if pd.notna(row["title"]) else ""
+
+    preprocessed_title, is_excluded = _preprocess_title(original_title)
+    clean_title = _reduce_title_segments(preprocessed_title)
+
+    if is_excluded:
+        return pd.Series(
+            {
+                "clean_title": clean_title,
+                "matched_variant": None,
+                "matched_role": None,
+                "matched_noc": None,
+                "confidence_score": 0.0,
+                "match_method": "ExcludedLeadership",
+            }
+        )
+
+    exact = _exact_match(clean_title, variant_to_role)
+    if exact is not None:
+        matched_role = exact["matched_role"]
+        matched_noc = role_to_noc.get(matched_role)
+        return pd.Series(
+            {
+                "clean_title": clean_title,
+                "matched_variant": exact["matched_variant"],
+                "matched_role": matched_role,
+                "matched_noc": matched_noc,
+                "confidence_score": exact["confidence_score"],
+                "match_method": exact["match_method"],
+            }
+        )
+
+    semantic = _semantic_match(
+        clean_title=clean_title,
         model=model,
-        unique_terms=unique_terms,
-        term_embeddings=term_embeddings,
-        noc_lookup=noc_lookup,
+        variant_texts=variant_texts,
+        variant_embeddings=variant_embeddings,
+        variant_to_role=variant_to_role,
     )
 
-    logger.info(f"Mapping {len(df)} roles...")
-    results = df.apply(match_func, axis=1)
+    matched_role = semantic["matched_role"]
+    matched_noc = role_to_noc.get(matched_role)
+
+    if min_confidence is not None and semantic["confidence_score"] < min_confidence:
+        matched_role = None
+        matched_noc = None
+
+    return pd.Series(
+        {
+            "clean_title": clean_title,
+            "matched_variant": semantic["matched_variant"],
+            "matched_role": matched_role,
+            "matched_noc": matched_noc,
+            "confidence_score": semantic["confidence_score"],
+            "match_method": semantic["match_method"],
+        }
+    )
+
+
+# ---------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------
+
+
+def map_roles(
+    df: pd.DataFrame,
+    yaml_path: str,
+    full_report: bool = False,
+    min_confidence: float = 70.0,
+    model_name: str = "all-MiniLM-L6-v2",
+) -> pd.DataFrame:
+    """
+    Map raw job titles to:
+      - matched role variant
+      - matched canonical role
+      - matched NOC
+
+    Required input columns:
+      - title
+
+    Optional input columns:
+      - job_hash
+
+    Returns:
+      full_report=True:
+        job_hash? | title | clean_title | matched_variant |
+        matched_role | matched_noc | confidence_score | match_method
+
+      full_report=False:
+        job_hash? | title | matched_role | matched_noc | confidence_score
+    """
+    if "title" not in df.columns:
+        raise ValueError("Input DataFrame must contain a 'title' column.")
+
+    variant_to_role, role_to_noc, variant_texts = _load_role_taxonomy(yaml_path)
+
+    logger.info("Initializing semantic model...")
+    model = SentenceTransformer(model_name)
+
+    logger.info("Encoding role variants...")
+    variant_embeddings = model.encode(
+        variant_texts,
+        convert_to_tensor=True,
+        show_progress_bar=False,
+    )
+
+    logger.info(f"Mapping {len(df)} job titles...")
+    mapper = partial(
+        _map_row,
+        model=model,
+        variant_texts=variant_texts,
+        variant_embeddings=variant_embeddings,
+        variant_to_role=variant_to_role,
+        role_to_noc=role_to_noc,
+        min_confidence=min_confidence,
+    )
+
+    mapped = df.apply(mapper, axis=1)
 
     if full_report:
-        return pd.concat([df, results], axis=1)
-    
-    # Minimalist Silver Layer output
-    return pd.concat([df, results[["matched_noc", "confidence_score"]]], axis=1)
+        out_cols = ["title"]
+        if "job_hash" in df.columns:
+            out_cols = ["job_hash"] + out_cols
+
+        return pd.concat(
+            [
+                df[out_cols].reset_index(drop=True),
+                mapped.reset_index(drop=True),
+            ],
+            axis=1,
+        )
+
+    base_cols = ["title"]
+    if "job_hash" in df.columns:
+        base_cols = ["job_hash"] + base_cols
+
+    return pd.concat(
+        [
+            df[base_cols].reset_index(drop=True),
+            mapped[["matched_role", "matched_noc", "confidence_score"]].reset_index(drop=True),
+        ],
+        axis=1,
+    )
