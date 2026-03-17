@@ -12,6 +12,7 @@ SKILL_HEADER_PATTERNS = [
     r"\bbasic qualifications?\b",
     r"\bmust[- ]?haves?\b",
     r"\bmust have\b",
+    r"\bnice[- ]to[- ]have\b",
     r"\btechnical (skills|expertise)\b",
     r"\bskills?\b",
     r"\bcore engineering skills?\b",
@@ -163,6 +164,27 @@ def _extract_bullet_points_with_context(soup: BeautifulSoup) -> list[str]:
     return extracted
 
 
+def _extract_all_bullet_points(soup: BeautifulSoup) -> list[str]:
+    text = soup.get_text("\n", strip=True)
+    if not text:
+        return []
+
+    items = []
+
+    for line in text.split("\n"):
+        line = _normalize_text(line)
+        
+        if not line or not BULLET_LINE_RX.match(line):
+            continue
+        
+        clean = BULLET_LINE_RX.sub("", line).strip()
+        
+        if clean:
+            items.append(clean)
+    
+    return items
+
+
 def extract_skills_section(html_content: str) -> str:
     """
     Strategy:
@@ -197,6 +219,11 @@ def extract_skills_section(html_content: str) -> str:
     if bullet_items:
         return "\n".join(bullet_items).strip()
 
-    # 4) Final fallback: full text content
+    # 4) Fallback: all bullet points
+    all_bullet_points = _extract_all_bullet_points(soup)
+    if all_bullet_points:
+        return "\n".join(all_bullet_points).strip()
+
+    # 5) Final fallback: full text content
     full_text = _normalize_text(soup.get_text("\n", strip=True))
     return _strip_stopwords(full_text)
