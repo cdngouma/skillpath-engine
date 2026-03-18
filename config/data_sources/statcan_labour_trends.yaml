@@ -8,5 +8,4 @@ query:
     - "Labour force characteristics":
         - "Labour force"
         - "Unemployment rate"
-        - "Proportion of employment"
 ref_start: "2010-01-01"

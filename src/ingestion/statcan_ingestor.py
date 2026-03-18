@@ -24,7 +24,7 @@ def fetch_data(cfg_path, fmt="yaml"):
 
     return df
     
-def ingest(cfg_path, table_name, db_path="data/warehouse.duckdb", mode="build"):
+def ingest(cfg_path, table_name, db_path="../data/warehouse.duckdb", mode="build"):
     with duckdb.connect(db_path) as db:
         # Fetch data as DataFrame
         df = fetch_data(cfg_path)

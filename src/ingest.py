@@ -28,6 +28,7 @@ def ingest_statcan(mode="build", table_id="all"):
             statcan_ingestor.ingest(
                 cfg_path=f"../config/data_sources/{source_cfg}",
                 table_name=t_name,
+                db_path=DB_PATH,
                 mode=mode
             )
     else:
@@ -37,6 +38,7 @@ def ingest_statcan(mode="build", table_id="all"):
             statcan_ingestor.ingest(
                 cfg_path=f"../config/data_sources/{source_cfg}",
                 table_name=t_name,
+                db_path=DB_PATH,
                 mode=mode
             )
         else:
@@ -44,7 +46,7 @@ def ingest_statcan(mode="build", table_id="all"):
 
 def main(mode="build", source="all", days_back=90):
     # 1. Validation
-    if not re.fullmatch(r"(all|adzuna|adzuna_desc|\d{8})", source):
+    if not re.fullmatch(r"(all|statcan|adzuna|adzuna_desc|\d{8})", source):
         logger.error(
             f"Invalid value for source: {source}. "
             "Use 'all', 'adzuna', 'adzuna_desc', or an 8-digit StatCan Table ID."
@@ -53,13 +55,12 @@ def main(mode="build", source="all", days_back=90):
 
     # 2. Environment & Database Prep
     load_dotenv()
-    if not os.path.exists(DB_PATH):
-        logger.info("Database not found. Initializing warehouse...")
-        init_bronze(db_path=DB_PATH)
+    
+    init_bronze(db_path=DB_PATH)
 
     # 3. StatCan Routing
-    if source == "all" or source.isdigit():
-        table_param = "all" if source == "all" else source
+    if source == "all" or source == "statcan" or source.isdigit():
+        table_param = "all" if source in ["all", "statcan"] else source
         ingest_statcan(mode=mode, table_id=table_param)
 
     # 4. Adzuna postings routing
@@ -80,7 +81,7 @@ if __name__ == "__main__":
         "--source",
         type=str,
         default="all",
-        help="Source to ingest: 'all', 'adzuna', 'adzuna_desc', or specific 8-digit StatCan Table ID."
+        help="Source to ingest: 'all', 'statcan', 'adzuna', 'adzuna_desc', or specific 8-digit StatCan Table ID."
     )
     parser.add_argument(
         "--update",

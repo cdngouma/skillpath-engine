@@ -10,7 +10,7 @@ query:
     - "Major field of study - Classification of Instructional Programs (CIP) 2021 (63)":
         - "Mathematics, computer and information sciences"
     - "Occupation - Unit group - National Occupational Classification (NOC) 2021 (821A)":
-        - "212 Professional occupations in applied sciences (except engineering)"
+        #- "212 Professional occupations in applied sciences (except engineering)"
         - "21211 Data scientists"
         - "21220 Cybersecurity specialists"
         - "21221 Business systems specialists"
