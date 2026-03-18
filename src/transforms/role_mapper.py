@@ -466,22 +466,16 @@ def map_roles(
 
     mapped = df.apply(mapper, axis=1)
 
-    if full_report:
-        out_cols = ["title"]
-        if "job_hash" in df.columns:
-            out_cols = ["job_hash"] + out_cols
+    base_cols = df.columns
 
+    if full_report:
         return pd.concat(
             [
-                df[out_cols].reset_index(drop=True),
+                df[base_cols].reset_index(drop=True),
                 mapped.reset_index(drop=True),
             ],
             axis=1,
         )
-
-    base_cols = ["title"]
-    if "job_hash" in df.columns:
-        base_cols = ["job_hash"] + base_cols
 
     return pd.concat(
         [

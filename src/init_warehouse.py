@@ -20,5 +20,11 @@ def init_bronze(db_path=DB_PATH):
         run_sql_file(conn, "../sql/init_bronze.sql")
         logger.info(f"Bronze layer initialized at {db_path}")
 
+def init_silver(db_path=DB_PATH):
+    with duckdb.connect(db_path) as conn:
+        run_sql_file(conn, "../sql/init_silver.sql")
+        logger.info(f"Silver layer initialized at {db_path}")
+
 if __name__ == "__main__":
     init_bronze()
+    init_silver()

@@ -18,13 +18,20 @@ client = instructor.from_provider(
 )
 
 def extract_tech_skills(description: str) -> JobSkills:
+    PROMPT = f"""
+    Extract explicit hard technical skills from the job description below:
+
+    ```
+    {description}
+    ```
+    """
     return client.chat.completions.create(
         model="gemma3:4b",
         temperature=0,
-        max_retries=1,
+        max_retries=2,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": description}
+            {"role": "user", "content": PROMPT}
         ],
         response_model=JobSkills,
     )

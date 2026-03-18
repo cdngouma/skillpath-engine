@@ -34,10 +34,12 @@ BRONZE_TABLES = {
     "labour_trends": "sc_labour_trends_raw",
     "graduates": "sc_graduates_trends_raw",
     # Job postings
-    "job_postings": "job_postings_raw"
+    "job_postings": "job_postings_raw",
+    "job_descriptions": "job_descriptions_raw"
 }
 
 DB_PATH = "../data/warehouse.duckdb"
+
 
 def _pivot_and_clean_bronze(table_name, pivot_cols=None, val_col="VALUE", keeps=None, limit=None):
     with duckdb.connect(DB_PATH) as con:
@@ -61,8 +63,10 @@ def _pivot_and_clean_bronze(table_name, pivot_cols=None, val_col="VALUE", keeps=
             pivot_idx = [c for c in df.columns if c not in pivot_cols and c != val_col]
             df_wide = df.pivot(index=pivot_idx, columns=pivot_cols, values=val_col).reset_index()
             df_wide.columns.name = None
+            df_wide.columns = [c.lower() for c in df_wide.columns]
             return df_wide
         return df
+
 
 def _apply_standard_noc_schema(df, rename_map=None):
     if rename_map:
@@ -84,7 +88,11 @@ def _apply_standard_noc_schema(df, rename_map=None):
     df.columns = [c.lower() for c in df.columns]
     return df
 
-# --- Public Factory Functions ---
+
+# ---------------------------------------------------------------------
+# Public Factory Functions
+# ---------------------------------------------------------------------
+
 
 def transform_graduates(limit=None):
     return _apply_standard_noc_schema(
@@ -97,6 +105,7 @@ def transform_graduates(limit=None):
         }
     )
 
+
 def transform_wages_trends(limit=None):
     df = _apply_standard_noc_schema(
         _pivot_and_clean_bronze(BRONZE_TABLES["wage_trends"], keeps=["REF_DATE", "National Occupational Classification (NOC)"], limit=limit),
@@ -108,6 +117,7 @@ def transform_wages_trends(limit=None):
     )
     return df
 
+
 def transform_census_income(limit=None):
     return _apply_standard_noc_schema(
         _pivot_and_clean_bronze(BRONZE_TABLES["census_income"], limit=limit),
@@ -118,6 +128,7 @@ def transform_census_income(limit=None):
             "VALUE": "median_income"
         }
     )
+
 
 def transform_census_labour(limit=None):
     pivot_col = "labour force status (3)"
@@ -135,6 +146,7 @@ def transform_census_labour(limit=None):
     df["labour_force"] = df["employed"] + df["unemployed"]
     return df
 
+
 def transform_labour_trends(limit=None):
     pivot_col = "labour force characteristics"
     return _apply_standard_noc_schema(
@@ -148,43 +160,47 @@ def transform_labour_trends(limit=None):
             "National Occupational Classification (NOC)": "occupation",
             "Labour force": "labour_force",
             "Unemployment rate": "unemployment_rate",
-            "Employment": "employed",
+            "Proportion of employment": "employed",
             "REF_DATE": "date",
         }
     )
+
 
 def transform_job_roles(threshold=71, limit=None):
     # Load raw job postings
     with duckdb.connect(DB_PATH) as con:
         query = f"""
             SELECT job_hash,
-                   search_term,
-                   REPLACE(CAST(raw_payload->'title' AS VARCHAR), '"', '') AS job_title,
-                   REPLACE(CAST(raw_payload->'company'->'display_name' AS VARCHAR), '\"', '') as company,
+                   search_query,
+                   title,
                    ingested_at,
                    source
             FROM bronze.{BRONZE_TABLES['job_postings']}
-            WHERE COALESCE(REPLACE(CAST(raw_payload->'company'->'display_name' AS VARCHAR), '"', ''), '') <> ''
         """ + (f" LIMIT {limit}" if limit else "")
         df = con.execute(query).df()
         df = map_roles(df, yaml_path=ROLE_MAPPING_PATH, full_report=False)
-        df = df.rename(columns={"matched_noc": "noc_code"})
+        df = df.rename(columns={
+            "matched_role": "canonical_role",
+            "matched_noc": "noc_code"
+        })
 
         if threshold is not None:
             # Filter out low confidence jobs
             df = df[df["confidence_score"] >= threshold].copy()
-            
-        return _apply_standard_noc_schema(df)
+
+        return df[[
+            "job_hash",
+            "title",
+            "canonical_role",
+            "noc_code",
+            "confidence_score",
+            "source",
+            "ingested_at"
+        ]]
+
 
 def transform_job_skills(mode="build", limit=None):
     with duckdb.connect(DB_PATH) as con:
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS silver.job_skills (
-                job_hash VARCHAR,
-                skill_name VARCHAR
-            )
-        """)
-
         if mode == "build":
             con.execute("DELETE FROM silver.job_skills")
         elif mode != "update":
@@ -192,12 +208,17 @@ def transform_job_skills(mode="build", limit=None):
 
         query = f"""
             SELECT p.job_hash, p.description_html
-            FROM bronze.{BRONZE_TABLES['job_postings']} p
+            FROM bronze.{BRONZE_TABLES['job_descriptions']} p
             WHERE p.description_html IS NOT NULL
               AND NOT EXISTS (
                   SELECT 1
                   FROM silver.job_skills s
                   WHERE s.job_hash = p.job_hash
+              )
+              AND EXISTS (
+                  SELECT 1
+                  FROM silver.job_postings j
+                  WHERE j.job_hash = p.job_hash
               )
         """ + (f" LIMIT {limit}" if limit else "")
 
@@ -235,7 +256,7 @@ def transform_job_skills(mode="build", limit=None):
                     df = pd.DataFrame(rows, columns=["job_hash", "skill_name"])
                     con.register("job_skills_batch", df)
                     con.execute("""
-                        INSERT INTO silver.job_skills
+                        INSERT INTO silver.job_skills (job_hash, skill_name)
                         SELECT DISTINCT job_hash, skill_name
                         FROM job_skills_batch
                     """)
@@ -244,14 +265,14 @@ def transform_job_skills(mode="build", limit=None):
                     rows = []
 
             except Exception as e:
-                logger.warning(f"Skill extraction failed for job_hash={job_hash}")
+                logger.warning(f"Skill extraction failed for job_hash={job_hash} | {e}")
                 continue
 
         if rows:
             df = pd.DataFrame(rows, columns=["job_hash", "skill_name"])
             con.register("job_skills_batch", df)
             con.execute("""
-                INSERT INTO silver.job_skills
+                INSERT INTO silver.job_skills (job_hash, skill_name)
                 SELECT DISTINCT job_hash, skill_name
                 FROM job_skills_batch
             """)
