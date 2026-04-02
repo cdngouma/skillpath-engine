@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 DB_PATH = "../data/warehouse.duckdb"
 
+MAPPING_THRESHOLD = 74
+
 SILVER_TARGETS = {
     # ---------------------------
     # StatCan targets
@@ -120,6 +122,8 @@ VALID_TARGETS = list(SILVER_TARGETS.keys()) + ['all', 'statcan', 'jobs']
 
 def _write_table(con, df, table_name, columns, mode="build"):
     if mode == "build":
+        if table_name == SILVER_TARGETS["job_roles"].get('table_name'):
+            con.execute(f"DELETE FROM silver.{SILVER_TARGETS['job_skills'].get('table_name')}")
         con.execute(f"DELETE FROM silver.{table_name}")
     elif mode != "update":
         raise ValueError(f"Unsupported mode: {mode}")
@@ -143,6 +147,7 @@ def _write_table(con, df, table_name, columns, mode="build"):
         INSERT INTO silver.{table_name} ({col_list})
         SELECT {col_list}
         FROM df
+        ON CONFLICT DO NOTHING
     """)
     con.unregister("df")
     return len(df)
@@ -161,7 +166,7 @@ def _run_target(con, target, mode):
         return
 
     if target == "job_roles":
-        df = transform_fn(threshold=71)
+        df = transform_fn(threshold=MAPPING_THRESHOLD)
         _write_table(con, df, table_name, columns, mode=mode)
         return
 
