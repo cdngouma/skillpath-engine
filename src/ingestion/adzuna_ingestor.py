@@ -24,8 +24,8 @@ WHAT_EXCLUDE = "director head president vice vp chief founder co-founder manager
 SOURCE_NAME = "Adzuna"
 
 RESULTS_PER_PAGE = 50
-MAX_PAGES = 5
-MAX_DAYS_OLD = 90
+MAX_PAGES = 10
+MAX_DAYS_OLD = 365
 REQUEST_SLEEP_SECONDS = 0.7
 
 
@@ -85,7 +85,7 @@ def fetch_adzuna_jobs(
             "what_exclude": WHAT_EXCLUDE,
             "category": "it-jobs",
             "salary_include_unknown": 1,
-            "max_days_old": max_days_old,
+            "max_days_old": 180,
             "full_time": 1,
             "content-type": "application/json",
         }
@@ -98,6 +98,7 @@ def fetch_adzuna_jobs(
             all_jobs.extend(results)
 
             if len(results) < results_per_page:
+                print(f"No more data (page: {page}) -- {len(results)}")
                 break
         else:
             logger.error(
