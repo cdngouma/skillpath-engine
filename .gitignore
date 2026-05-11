@@ -1,0 +1,26 @@
+# --- Data & Databases ---
+data/*.duckdb
+data/*.duckdb.wal
+data/raw/
+data/processed/
+
+# --- Secrets & Environment ---
+.env
+.venv/
+env/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# --- OS & IDE ---
+.DS_Store
+.vscode/
+.idea/
+
+# --- Large Files ---
+*.csv
+*.parquet
+*.json
+
+# --- CLI ---
+duckdb.exe
