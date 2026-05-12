@@ -80,7 +80,7 @@ Rules:
 - Use empty lists for missing list fields.
 - Use null for missing year fields.
 - Never return ["None"], ["N/A"], ["not specified"], ["not mentioned"], or similar placeholder strings.
-- If no education or certification is stated, return "education_and_certs": [].
+- If no education or certification is stated, return [].
 - Do not invent requirements not present in the text.
 - Do not include explanations.
 
