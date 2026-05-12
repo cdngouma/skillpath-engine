@@ -37,9 +37,9 @@ class JobRequirements(BaseModel):
         default=None,
         description="Maximum years of experience required.",
     )
-    education_and_certs: list[str] = Field(
+    certifications: list[str] = Field(
         default_factory=list,
-        description="Degrees, diplomas, academic requirements, and certifications.",
+        description="Certifications.",
     )
 
     @field_validator(
@@ -70,17 +70,17 @@ Return valid JSON only with exactly these keys:
 - technical_concepts
 - min_years
 - max_years
-- education_and_certs
+- certifications
 
 Rules:
 - technical_tools: named software, programming languages, frameworks, libraries, platforms, and cloud tools.
-- technical_concepts: domains, methods, responsibilities, and technical areas such as machine learning, data modeling, ETL, governance, or API design.
+- technical_concepts: non-tool technical domains, methods, and practices such as machine learning, data modeling, ETL, data governance, MLOps, statistics, experimentation, NLP, computer vision, API design, or distributed systems. Do not include software tools, programming languages, cloud platforms, or generic job responsibilities.
 - min_years and max_years must be integers or null.
-- education_and_certs must be a list of explicitly stated degrees, diplomas, academic requirements, and certifications.
+- certifications must be a list of explicitly stated certifications.
 - Use empty lists for missing list fields.
 - Use null for missing year fields.
 - Never return ["None"], ["N/A"], ["not specified"], ["not mentioned"], or similar placeholder strings.
-- If no education or certification is stated, return [].
+- If no certification is stated, return [].
 - Do not invent requirements not present in the text.
 - Do not include explanations.
 
