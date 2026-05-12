@@ -116,9 +116,7 @@ def insert_job_requirements(con, df: pd.DataFrame) -> None:
                     technical_concepts,
                     certifications,
                     min_years,
-                    max_years,
-                    extraction_status,
-                    error
+                    max_years
                 )
             SELECT
                 source,

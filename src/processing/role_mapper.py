@@ -6,7 +6,7 @@ from typing import Any
 
 import pandas as pd
 
-from src.config import settings
+from src.config import config
 
 
 # ----------------------------
@@ -59,7 +59,7 @@ def compile_taxonomy(taxonomy: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return compiled
 
 
-COMPILED_TAXONOMY = compile_taxonomy(settings.role_taxonomy)
+COMPILED_TAXONOMY = compile_taxonomy(config.role_taxonomy)
 
 
 # ----------------------------
