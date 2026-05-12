@@ -165,7 +165,8 @@ def get_jobs_metadata(con) -> pd.DataFrame:
         FROM jobs_raw p
         JOIN descriptions_raw d
           ON p.source = d.source
-         AND p.source_job_id = d.source_job_id;
+         AND p.source_job_id = d.source_job_id
+        WHERE company IS NOT NULL;
     """).df()
 
 
