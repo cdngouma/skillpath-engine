@@ -41,6 +41,6 @@ config = Configs(
     role_taxonomy=_load_role_taxonomy(ROLE_TAXONOMY_PATH),
     excluded_terms=" ".join(EXCLUDED_TERMS),
     results_per_page=50,
-    max_days_old=60,
+    max_days_old=30,
     max_pages=10
 )
