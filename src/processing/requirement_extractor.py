@@ -6,7 +6,7 @@ import instructor
 from pydantic import BaseModel, Field, field_validator
 
 
-MODEL_NAME = "gemma3:4b"
+MODEL_NAME = "ollama/gemma3:4b"
 
 PLACEHOLDER_VALUES = {
     "none",
@@ -45,7 +45,7 @@ class JobRequirements(BaseModel):
     @field_validator(
         "technical_tools",
         "technical_concepts",
-        "education_and_certs",
+        "certifications",
         mode="before",
     )
     @classmethod
@@ -98,13 +98,14 @@ Extract the structured job requirements from the text below.
 """.strip()
 
 
-def get_llm_client():
-    return instructor.from_provider(MODEL_NAME)
+def get_llm_client(model=None):
+    model = model if model else MODEL_NAME
+    return instructor.from_provider(model)
 
 
 def extract_requirements(
     description: str,
-    client=None,
+    client = None,
 ) -> dict:
     if not description or not description.strip():
         return {
