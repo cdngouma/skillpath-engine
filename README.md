@@ -1,153 +1,178 @@
 # SkillPath Pipeline
 
-A data pipeline that ingests job postings, extracts structured requirements from job descriptions, normalizes job titles into canonical roles, and stores the results in DuckDB for labor-market analytics.
+An LLM-assisted data pipeline that transforms unstructured job postings into a structured labor-market intelligence database for analytics and career insights.
 
-## Overview
+The pipeline ingests job postings, normalizes inconsistent job titles, extracts structured requirements from free-text job descriptions, and stores curated outputs in DuckDB for downstream analysis.
 
-This project turns raw job postings into a structured analytics dataset for AI, data, and analytics roles.
+Unlike traditional ETL pipelines that preserve raw text, SkillPath converts noisy job advertisements into structured datasets suitable for labor-market analytics, recommendation systems, and AI-assisted career planning.
 
-The pipeline collects job metadata and descriptions, processes raw HTML/text, maps noisy job titles to canonical roles, extracts technical requirements with an LLM, and stores both raw and curated outputs in a local DuckDB warehouse.
+---
 
-The goal is to support analysis such as:
+## Motivation
 
-- top tools by role
-- common technical concepts by role
-- experience requirements by role
-- certification demand
-- role and seniority distributions
-- career path recommendation
+Job postings contain valuable information about technical skills, certifications, experience requirements, and hiring trends.
 
-## Pipeline
+However, most of this information exists as unstructured text, making large-scale analysis difficult.
+
+SkillPath automates this process by combining deterministic data processing with LLM-based information extraction to produce analytics-ready datasets.
+
+The resulting warehouse supports questions such as:
+
+- Which tools are most frequently requested for AI Engineers?
+- Which certifications are associated with senior roles?
+- How do skill requirements differ between Data Scientists and ML Engineers?
+- Which technologies are emerging across different occupations?
+
+---
+
+## Features
+
+### Data Ingestion
+
+- Job API integration
+- HTML scraping
+- Raw data preservation
+
+### Data Processing
+
+- Canonical role normalization
+- Metadata cleaning
+- Seniority inference
+- Structured schema generation
+
+### Information Extraction
+
+- LLM-based requirement extraction
+- Technical tools
+- Technical concepts
+- Certifications
+- Experience requirements
+
+### Analytics
+
+- DuckDB warehouse
+- SQL views
+- Labor-market analytics
+- Career-path exploration
+
+---
+
+## Pipeline Architecture
 
 ```text
-Job API + scraped descriptions
-        ↓
-Raw storage
-        ↓
-Role mapping and metadata normalization
-        ↓
-LLM-based requirements extraction
-        ↓
-DuckDB analytics tables and views
+           Job API + Web Scraping
+                     │
+                     ▼
+               Raw Job Storage
+                     │
+                     ▼
+        Metadata Cleaning & Normalization
+                     │
+                     ▼
+          Canonical Role Mapping
+                     │
+                     ▼
+       LLM Requirement Extraction
+                     │
+                     ▼
+        Structured Analytics Tables
+                     │
+                     ▼
+      SQL Analytics & Career Insights
 ```
 
-## Data Layers
-- `jobs_raw`: Raw job metadata from the job API.
-- `descriptions_raw`: Scraped job descriptions and HTML content.
-- `jobs`: Cleaned job metadata with normalized canonical roles.
-- `job_requirements`: Structured requirements extracted from job descriptions.
-- `job_requirement_items`: View that flattens tools, concepts, and certifications into one row per requirement item.
+---
 
-### Extracted Fields
+## Data Model
 
-The pipeline extracts and stores:
-- canonical role title
-- company
-- location
-- salary range when available
-- technical tools
-- technical concepts
-- certifications
-- minimum and maximum years of experience
-- inferred seniority
+### Raw Layer
+
+- `jobs_raw`
+- `descriptions_raw`
+
+### Curated Layer
+
+- `jobs`
+- `job_requirements`
+
+### Analytics Layer
+
+- `job_requirement_items`
+
+---
+
+## Extracted Information
+
+Each posting is transformed into structured attributes including:
+
+- Canonical job role
+- Company
+- Location
+- Salary range
+- Technical tools
+- Technical concepts
+- Certifications
+- Experience requirements
+- Seniority level
+
+---
 
 ## Project Structure
 
 ```text
 skillpath-pipeline/
+│
 ├── data/
-│   └── warehouse.duckdb
 ├── notebooks/
-│   ├── 01_data_audit_and_role_mapping.ipynb
-│   └── 02_extraction_prototyping.ipynb
 ├── scripts/
-│   ├── ingest.py
-│   ├── build_jobs_table.py
-│   └── extract_requirements.py
 ├── sql/
-│   ├── schema.sql
-│   └── views.sql
 └── src/
-    ├── config.py
-    ├── role_taxonomy.json
     ├── ingestion/
-    │   ├── adzuna.py
-    │   └── scrape.py
     ├── processing/
-    │   ├── role_mapper.py
-    │   ├── section_extractor.py
-    │   └── requirement_extractor.py
     └── storage/
-        └── db.py
 ```
 
-## Setup
+---
 
-Install dependencies:
-```bash
-pip install -r requirements.txt
-python -m playwright install
-```
+## Tech Stack
 
-Create a `.env` file for API credentials:
+- Python
+- DuckDB
+- Playwright
+- Ollama
+- Pandas
+- SQL
 
-```text
-ADZUNA_APP_ID=your_app_id
-ADZUNA_APP_KEY=your_app_key
-```
-
-The project uses Ollama for local LLM extraction. Make sure Ollama is running and the model is available:
-
-```bash
-ollama pull gemma3:4b
-```
-
-## Usage
-
-```bash
-# Run raw ingestion:
-python -m scripts.ingest_raw
-
-# Build the curated jobs table:
-python -m scripts.build_jobs_table
-
-# Extract structured requirements:
-python -m scripts.extract_requirements
-
-# Run a small extraction test:
-python -m scripts.extract_requirements --limit 10 --dry-run
-```
+---
 
 ## Example Analytics
 
-Top tools by role:
+Top technical tools by role
 
 ```sql
 SELECT
     j.role_title,
     r.item_value_norm AS tool,
-    COUNT(*) AS n_jobs
-FROM job_requirement_items r
-JOIN jobs j
-  ON r.source = j.source
- AND r.source_job_id = j.source_job_id
+    COUNT(DISTINCT j.source || ':' || j.source_job_id) AS job_count
+FROM job_requirement_items AS r
+JOIN jobs AS j
+    ON r.source = j.source
+   AND r.source_job_id = j.source_job_id
 WHERE r.item_type = 'technical_tool'
-GROUP BY j.role_title, r.item_value_norm
-ORDER BY j.role_title, n_jobs DESC;
-```
-
-Jobs requiring Python:
-
-```sql
-SELECT
+GROUP BY
     j.role_title,
-    COUNT(DISTINCT j.source || ':' || j.source_job_id) AS n_jobs
-FROM jobs j
-JOIN job_requirement_items r
-  ON j.source = r.source
- AND j.source_job_id = r.source_job_id
-WHERE r.item_value_norm = 'python'
-GROUP BY j.role_title
-ORDER BY n_jobs DESC;
+    r.item_value_norm
+ORDER BY
+    j.role_title,
+    job_count DESC;
 ```
 
+---
+
+## Future Work
+
+- Skill taxonomy learning
+- Occupation clustering
+- Salary normalization
+- Skill demand trend analysis
+- Career recommendation engine
