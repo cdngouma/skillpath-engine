@@ -12,9 +12,9 @@ import pandas as pd
 import requests
 from dotenv import load_dotenv
 
-from src.ingestion.scrape import PlaywrightScraper
-from src.config import config
-import src.storage.db as db
+from src.skillpath.ingestion.scrape import PlaywrightScraper
+from src.skillpath.config import config
+import src.storage.repository as repository
 
 from tqdm import tqdm
 
@@ -98,14 +98,14 @@ def insert_jobs(con: duckdb.DuckDBPyConnection, jobs: list[dict[str, Any]]) -> i
         return 0
     df = pd.DataFrame(jobs)
     df['raw_json'] = df['raw_json'].apply(json.dumps)
-    db.insert_jobs_raw(con, df)
+    repository.insert_jobs_raw(con, df)
 
 
 def insert_descriptions(con: duckdb.DuckDBPyConnection, jobs: list[dict[str, Any]]) -> None:
     if not jobs:
         return 0
     df = pd.DataFrame(jobs)
-    db.insert_descriptions_raw(con, df)
+    repository.insert_descriptions_raw(con, df)
 
 
 def ingest_jobs() -> None:
@@ -117,11 +117,11 @@ def ingest_jobs() -> None:
     ]
     
     with duckdb.connect(config.db_path) as con:
-        db.create_tables(con)
+        repository.create_tables(con)
 
         logger.info("🔄 Fetching job postings from Adzuna...")
 
-        initial_count = db.count_items(con, table_name="jobs_raw")
+        initial_count = repository.count_items(con, table_name="jobs_raw")
 
         for (role, query) in tqdm(tasks, desc="Ingesting jobs", unit="query"):
             raw_jobs = fetch_jobs(
@@ -134,7 +134,7 @@ def ingest_jobs() -> None:
             processed_jobs = process_jobs(raw_jobs, query)
             insert_jobs(con, processed_jobs)
 
-        final_count = db.count_items(con, table_name="jobs_raw")
+        final_count = repository.count_items(con, table_name="jobs_raw")
         inserted = final_count - initial_count
 
         logger.info(f"✅ Ingestion completed. Inserted ({inserted}) raw job rows.")
@@ -142,10 +142,10 @@ def ingest_jobs() -> None:
 
 def ingest_job_descriptions() -> None:
     with duckdb.connect(config.db_path) as con:
-        db.create_tables(con)
+        repository.create_tables(con)
 
         # Get list of jobs to scrape descriptions
-        jobs_to_scrape = db.get_jobs_missing_descriptions(con)
+        jobs_to_scrape = repository.get_jobs_missing_descriptions(con)
 
         failed = 0
 
@@ -154,7 +154,7 @@ def ingest_job_descriptions() -> None:
 
         logger.info("🔄 Scraping job descriptions...")
 
-        initial_count = db.count_items(con, table_name="descriptions_raw")
+        initial_count = repository.count_items(con, table_name="descriptions_raw")
 
         with PlaywrightScraper() as scraper:
             for row in tqdm(jobs_to_scrape.itertuples(index=False), total=len(jobs_to_scrape), desc="Processing Jobs"):
@@ -185,7 +185,7 @@ def ingest_job_descriptions() -> None:
             if rows:
                 insert_descriptions(con, rows)
 
-            final_count = db.count_items(con, table_name="descriptions_raw")
+            final_count = repository.count_items(con, table_name="descriptions_raw")
             inserted = final_count - initial_count
 
             logger.info(

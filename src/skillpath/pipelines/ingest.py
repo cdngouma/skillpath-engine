@@ -1,5 +1,5 @@
 import argparse
-from src.ingestion import adzuna
+from src.skillpath.ingestion import adzuna
 
 def main(args):
     if args.target not in ['all', 'jobs', 'desc']:

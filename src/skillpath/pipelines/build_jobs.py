@@ -6,9 +6,9 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 
-from src.config import config
-from src.storage.db import initialize_database, get_jobs_metadata, insert_jobs
-from src.processing.role_mapper import map_titles_df
+from src.skillpath.config import config
+from src.storage.repository import initialize_database, get_jobs_metadata, insert_jobs
+from src.skillpath.ingestion.processing.role_mapper import map_titles_df
 
 import logging
 logging.basicConfig(level=logging.INFO)

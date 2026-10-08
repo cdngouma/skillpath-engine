@@ -6,14 +6,14 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 
-from src.config import config
-from src.storage.db import (
+from src.skillpath.config import config
+from src.storage.repository import (
     initialize_database,
     get_job_descriptions,
     insert_job_requirements,
 )
-from src.processing.section_extractor import extract_requirements as extract_requirement_section
-from src.processing.requirement_extractor import extract_requirements as extract_structured_requirements, get_llm_client
+from src.skillpath.ingestion.processing.section_extractor import extract_requirements as extract_requirement_section
+from src.skillpath.ingestion.processing.requirement_extractor import extract_requirements as extract_structured_requirements, get_llm_client
 
 import logging
 logging.basicConfig(level=logging.INFO)

@@ -6,7 +6,7 @@ from typing import Any
 
 import pandas as pd
 
-from src.config import config
+from src.skillpath.config import config
 
 
 # ----------------------------
