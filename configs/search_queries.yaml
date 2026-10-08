@@ -1,0 +1,43 @@
+
+# Search queries grouped by canonical job role.
+# Each role contains phrases used to discover relevant job postings.
+# Search results must be independently classified before analysis.
+# Add new roles and search phrases here without modifying ingestion logic.
+
+data_scientist:
+  - data scientist
+  - applied scientist
+  - machine learning scientist
+
+ml_engineer:
+  - machine learning engineer
+  - ml engineer
+  - mlops engineer
+  - machine learning developer
+
+ai_engineer:
+  - ai engineer
+  - artificial intelligence engineer
+  - generative ai engineer
+  - ai application developer
+
+data_engineer:
+  - data engineer
+  - data pipeline engineer
+  - data platform engineer
+  - etl developer
+
+analytics_engineer:
+  - analytics engineer
+
+data_analyst:
+  - data analyst
+  - business intelligence analyst
+  - bi analyst
+  - reporting analyst
+
+forward_deployed_engineer:
+  - forward deployed scientist
+  - forward deployed data scientist
+  - forward deployed ai engineer
+  - forward deployed ml engineer

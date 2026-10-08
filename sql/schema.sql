@@ -1,46 +1,63 @@
-CREATE TABLE IF NOT EXISTS jobs_raw (
-    source VARCHAR NOT NULL,
-    source_job_id VARCHAR NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    search_term VARCHAR NOT NULL,
-    fetched_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    redirect_url VARCHAR,
-    raw_json JSON NOT NULL,
-    UNIQUE(source, source_job_id)
-);
 
-CREATE TABLE IF NOT EXISTS descriptions_raw (
-    source VARCHAR NOT NULL,
-    source_job_id VARCHAR NOT NULL,
-    redirect_url VARCHAR,
-    scraped_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    html_description VARCHAR,
-    UNIQUE(source, source_job_id)
-);
+CREATE SCHEMA IF NOT EXISTS skillpath;
 
-CREATE TABLE IF NOT EXISTS jobs (
+CREATE TABLE IF NOT EXISTS skillpath.jobs_raw (
     source VARCHAR NOT NULL,
     source_job_id VARCHAR NOT NULL,
-    posted_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    job_title VARCHAR NOT NULL,
-    role_title VARCHAR NOT NULL,
-    company VARCHAR NOT NULL,
+
+    title VARCHAR NOT NULL,
+    company VARCHAR,
     location VARCHAR,
-    min_salary DOUBLE,
-    max_salary DOUBLE,
-    redirect_url VARCHAR,
-    UNIQUE(source, source_job_id)
+    posted_at TIMESTAMPTZ,
+    description VARCHAR,
+    url VARCHAR,
+
+    salary_min DOUBLE,
+    salary_max DOUBLE,
+
+    raw_payload JSON NOT NULL,
+
+    first_seen_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW(),
+    last_seen_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW(),
+
+    PRIMARY KEY (source, source_job_id)
 );
 
-CREATE TABLE IF NOT EXISTS job_requirements (
+CREATE TABLE IF NOT EXISTS skillpath.job_search_matches (
     source VARCHAR NOT NULL,
     source_job_id VARCHAR NOT NULL,
-    technical_tools VARCHAR[],
-    technical_concepts VARCHAR[],
-    certifications VARCHAR[],
-    min_years INT,
-    max_years INT,
-    extracted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(source, source_job_id)
+    canonical_role VARCHAR NOT NULL,
+    search_term VARCHAR NOT NULL,
+
+    first_matched_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW(),
+    last_matched_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW(),
+
+    PRIMARY KEY (
+        source,
+        source_job_id,
+        canonical_role,
+        search_term
+    ),
+
+    FOREIGN KEY (source, source_job_id)
+        REFERENCES skillpath.jobs_raw(source, source_job_id)
+);
+
+CREATE TABLE IF NOT EXISTS skillpath.ingestion_runs (
+    run_id VARCHAR PRIMARY KEY,
+    source VARCHAR NOT NULL,
+
+    started_at TIMESTAMPTZ NOT NULL
+        DEFAULT NOW(),
+    finished_at TIMESTAMPTZ,
+
+    status VARCHAR NOT NULL
+        CHECK (status IN ('running', 'completed', 'failed')),
+
+    records_processed INTEGER NOT NULL DEFAULT 0,
+    error_message VARCHAR
 );

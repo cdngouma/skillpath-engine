@@ -1,26 +1,53 @@
-# --- Data & Databases ---
-data/*.duckdb
-data/*.duckdb.wal
-data/raw/
-data/processed/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+
+# --- Virtual Environments ---
+.venv/
+venv/
+env/
 
 # --- Secrets & Environment ---
 .env
-.venv/
-env/
-__pycache__/
-*.pyc
-.ipynb_checkpoints/
+.env.*
+!.env.example
 
-# --- OS & IDE ---
-.DS_Store
-.vscode/
-.idea/
+# --- Data & Databases ---
+data/*
+!data/.gitkeep
+*.duckdb
+*.duckdb.wal
+*.db.wal
+*.sqlite
+*.sqlite3
 
-# --- Large Files ---
+# --- Generated Data Files ---
 *.csv
 *.parquet
-*.json
 
-# --- CLI ---
+# --- Jupyter ---
+.ipynb_checkpoints/
+
+# --- IDE & OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Local Tools ---
 duckdb.exe
+
+# --- Logs & Temporary Files ---
+*.log
+*.tmp
+*.bak

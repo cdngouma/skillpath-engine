@@ -1,46 +1,67 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+import os
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
-SRC_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SRC_DIR.parent
+import yaml
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+CONFIG_DIR = PROJECT_ROOT / "configs"
 DATA_DIR = PROJECT_ROOT / "data"
-ROLE_TAXONOMY_PATH = SRC_DIR / "role_taxonomy.json"
+SCHEMA_PATH = PROJECT_ROOT / "sql" / "schema.sql"
 
-EXCLUDED_TERMS = (
-    "director",
-    "head",
-    "president",
-    "vice",
-    "vp",
-    "chief",
-    "founder",
-    "co-founder",
-    "manager",
-    "gestionnaire",
-    "directeur",
-)
+
+def load_json(path: Path) -> Any:
+    with path.open("r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def load_yaml(path: Path) -> Any:
+    with path.open("r", encoding="utf-8") as file:
+        return yaml.safe_load(file)
+
 
 @dataclass(frozen=True)
-class Configs:
-    db_path: Path
-    role_taxonomy: list[dict]
-    excluded_terms: str
-    results_per_page: int
-    max_days_old: int
-    max_pages: int
+class Config:
+    db_path: Path = DATA_DIR / "db.duckdb"
+    schema_path: Path = SCHEMA_PATH
 
-def _load_role_taxonomy(path: Path) -> list[dict[str, object]]:
-    with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
+    country: str = "ca"
+    results_per_page: int = 50
+    max_days_old: int = 30
+    max_pages: int = 10
 
-config = Configs(
-    db_path=DATA_DIR / "warehouse.duckdb",
-    role_taxonomy=_load_role_taxonomy(ROLE_TAXONOMY_PATH),
-    excluded_terms=" ".join(EXCLUDED_TERMS),
-    results_per_page=50,
-    max_days_old=30,
-    max_pages=10
-)
+    search_queries: dict[str, list[str]] = field(
+        default_factory=lambda: load_yaml(
+            CONFIG_DIR / "search_queries.yaml"
+        )
+    )
+
+    excluded_terms: tuple[str, ...] = (
+        "director",
+        "head",
+        "president",
+        "vice president",
+        "vp",
+        "chief",
+        "founder",
+        "co-founder",
+        "manager",
+        "gestionnaire",
+        "directeur",
+    )
+
+
+def load_config() -> Config:
+    return Config(
+        db_path=Path(
+            os.getenv(
+                "SKILLPATH_DB_PATH",
+                str(DATA_DIR / "db.duckdb"),
+            )
+        )
+    )

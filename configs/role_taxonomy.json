@@ -1,0 +1,125 @@
+[
+  {
+    "id": "data_scientist",
+    "name": "data scientist",
+    "search_term": [
+      "data scientist",
+      "applied scientist",
+      "research scientist"
+    ],
+    "aliases": [
+      "data scientist",
+      "applied scientist",
+      "research scientist",
+      "machine learning scientist",
+      "ml scientist",
+      "decision scientist",
+      "ai research",
+      "ai scientist",
+      "applied researcher",
+      "data science"
+    ]
+  },
+  {
+    "id": "ml_engineer",
+    "name": "ml engineer",
+    "search_term": [
+      "machine learning",
+      "ml",
+      "mlops",
+      "applied ml"
+    ],
+    "aliases": [
+      "ml engineer",
+      "machine learning engineer",
+      "machine learning developer",
+      "applied ai engineer",
+      "ai engineer",
+      "llm engineer",
+      "genai engineer",
+      "generative ai engineer",
+      "mlops engineer",
+      "mlops",
+      "ml ops engineer",
+      "artificial intelligence engineer",
+      "ai/ml engineer",
+      "deep learning engineer"
+    ]
+  },
+  {
+    "id": "ai_developer",
+    "name": "ai developer",
+    "search_term": [
+      "applied ai",
+      "ai",
+      "llm",
+      "genai",
+      "generative ai",
+      "prompt engineer",
+      "agentic"
+    ],
+    "aliases": [
+      "ai developer",
+      "llm developer",
+      "genai developer",
+      "generative ai developer",
+      "prompt engineer",
+      "ai application developer",
+      "agent developer",
+      "agentic developer",
+      "agentic builder",
+      "agentic engineer",
+      "agentic ai developer",
+      "ai app developer",
+      "ai solutions developer",
+      "agentic ai",
+      "ai/ml developer",
+      "ai architect"
+    ]
+  },
+  {
+    "id": "data_analyst",
+    "name": "data analyst",
+    "search_term": [
+      "data analyst"
+    ],
+    "aliases": [
+      "data analyst",
+      "business data analyst",
+      "reporting analyst",
+      "product analyst",
+      "analytics analyst",
+      "business analyst data",
+      "insights analyst",
+      "data reporting analyst",
+      "data analytics",
+      "analytics developer"
+    ]
+  },
+  {
+    "id": "data_engineer",
+    "name": "data engineer",
+    "search_term": [
+      "data engineer",
+      "etl",
+      "analytics engineer"
+    ],
+    "aliases": [
+      "data engineer",
+      "big data engineer",
+      "etl developer",
+      "etl engineer",
+      "data platform engineer",
+      "analytics engineer",
+      "data pipeline engineer",
+      "data integration engineer",
+      "data infrastructure engineer",
+      "data architect",
+      "data developer",
+      "databricks engineer",
+      "snowflake engineer",
+      "databricks developer",
+      "snowflake developer"
+    ]
+  }
+]

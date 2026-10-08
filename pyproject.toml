@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "skillpath-engine"
+version = "0.1.0"
+description = "Canadian tech job market data ingestion and skills analysis pipeline"
+requires-python = ">=3.11"
+dependencies = [
+    "duckdb",
+    "requests",
+    "pydantic>=2",
+    "PyYAML",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[project.scripts]
+skillpath = "skillpath.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
